@@ -37,6 +37,44 @@ Which (if any) progressive web app feature(s) does your app support?
 
 ![](https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif)
 
+MOBILE VIEW
+![IMG_2515](https://github.com/user-attachments/assets/3723e41f-46e6-489c-9769-0b07b1516734)
+A comprehensive flow diagram showing the mobile version of the app with core features: login/signup, splash page, outfit/clothing main page, try-on outfit generator, upload/take photo and adding description, profile, etc. 
+
+
+
+DESKTOP VIEW
+![IMG_2514](https://github.com/user-attachments/assets/50cbd9cf-3935-4c11-84be-1fa57da5fb2a)
+User profile page with account details.
+
+
+![IMG_2513](https://github.com/user-attachments/assets/0590fca9-d550-4c88-995b-947321265d10)
+"Try On" featuring a filter for items, and buttons like random (to change the clothing pieces), save (to save the clothing pieces), and add-on to add on another section. 
+
+
+![IMG_2511](https://github.com/user-attachments/assets/127dfa76-9708-4711-9730-a9365926d3be)
+Create section where users can upload or take a photo of a new clothing item to their closet.
+
+
+![IMG_2512](https://github.com/user-attachments/assets/aab7e792-e273-421e-926b-88b882fe35a7)
+Screen for adding/editing a description, tags, and other details about a clothing item or outfit after upload or when you want to edit. 
+
+
+![IMG_2510](https://github.com/user-attachments/assets/93187a90-dda7-4285-9f0a-d3415739e197)
+Detailed view for an individual clothing item or outfit, showing tags and description with the option to edit or delete. 
+
+
+![IMG_2509](https://github.com/user-attachments/assets/78efb2c2-63e8-4edc-afa9-06e3eb794afd)
+Main screen for Outfit and Clothing showcasing the user's collection with a filterable sidebar. 
+
+
+![IMG_2508](https://github.com/user-attachments/assets/3934aded-52da-4a10-88ed-b7947af13d7d)
+User registration screen for creating a new account. 
+
+
+![IMG_2507](https://github.com/user-attachments/assets/e532c9cb-aaa0-46cb-b95f-b3425a5aec23)
+Splash page and login for first-time or returning users, highlighting the app's use. 
+
 
 ## Testing Notes
 
