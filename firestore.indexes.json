@@ -1,0 +1,168 @@
+{
+  "_structure": {
+    "_userDocument": {
+      "_note": "users/{userId} document - field paths and subcollections",
+      "_fieldPaths": {
+        "userMeasurements.head": "Hat/headwear size",
+        "userMeasurements.top": "Shirt/top size",
+        "userMeasurements.bottom": "Pants/bottom size",
+        "userMeasurements.shoe": "Shoe size",
+        "userMeasurements.dress": "Dress size",
+        "userMeasurements.jacket": "Jacket/outerwear size",
+        "userMeasurements.ring": "Ring size",
+        "userMeasurements.waist": "Waist measurement",
+        "userMeasurements.chest": "Chest measurement",
+        "userMeasurements.inseam": "Inseam measurement",
+        "userSettings.theme": "Theme preference: light/dark/system",
+        "userSettings.username": "Unique username",
+        "userSettings.name": "Full name",
+        "userSettings.profilePictureUrl": "URL to profile picture in Firebase Storage",
+        "userStats.clothingCount": "Total number of clothing items",
+        "userStats.outfitCount": "Total number of outfits"
+      },
+      "_subcollections": {
+        "clothingItems": "Subcollection: Individual clothing items with category, seasons, colors, tags, events, imageUrl.",
+        "outfits": "Subcollection: Complete outfits with seasons, colors, events, tags, clothingItemIds, imageUrl."
+      }
+    }
+  },
+  "indexes": [
+    {
+      "_comment": "clothingItems: Filter by category, sorted by date",
+      "collectionGroup": "clothingItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "clothingItems: Filter by category + season",
+      "collectionGroup": "clothingItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "seasons",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "clothingItems: Filter by category + color",
+      "collectionGroup": "clothingItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "colors",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "clothingItems: Filter by category + event",
+      "collectionGroup": "clothingItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "events",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "clothingItems: Filter by category + tag",
+      "collectionGroup": "clothingItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "outfits: Filter by season, sorted by date",
+      "collectionGroup": "outfits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "seasons",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "outfits: Filter by color, sorted by date",
+      "collectionGroup": "outfits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "colors",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "_comment": "outfits: Filter by event, sorted by date",
+      "collectionGroup": "outfits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "events",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

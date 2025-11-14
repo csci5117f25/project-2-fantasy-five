@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to validate userMeasurements structure - all field paths optional
+    function isValidUserMeasurements() {
+      return !('userMeasurements' in request.resource.data) ||
+             (request.resource.data.userMeasurements is map &&
+              // All fields are optional, but must be string if present
+              (!('head' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.head is string) &&
+              (!('top' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.top is string) &&
+              (!('bottom' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.bottom is string) &&
+              (!('shoe' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.shoe is string) &&
+              (!('dress' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.dress is string) &&
+              (!('jacket' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.jacket is string) &&
+              (!('ring' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.ring is string) &&
+              (!('waist' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.waist is string) &&
+              (!('chest' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.chest is string) &&
+              (!('inseam' in request.resource.data.userMeasurements) || request.resource.data.userMeasurements.inseam is string));
+    }
+    
+    // Helper function to validate userSettings structure 
+    function isValidUserSettings() {
+      let settings = request.resource.data.userSettings;
+      return settings is map &&
+             // Required fields
+             settings.keys().hasAll(['theme', 'username', 'name']) &&
+             settings.theme is string &&
+             settings.theme in ['light', 'dark', 'system'] &&
+             settings.username is string &&
+             settings.name is string &&
+             // Optional fields
+             (!('profilePictureUrl' in settings) || settings.profilePictureUrl is string);
+    }
+    
+    // Helper function to validate userStats structure 
+    function isValidUserStats() {
+      let stats = request.resource.data.userStats;
+      return stats is map &&
+             // Required fields
+             stats.keys().hasAll(['clothingCount', 'outfitCount']) &&
+             stats.clothingCount is int &&
+             stats.clothingCount >= 0 &&
+             stats.outfitCount is int &&
+             stats.outfitCount >= 0;
+    }
+    
+    // Helper function to validate clothing item structure 
+    function isValidClothingItem() {
+      let item = request.resource.data;
+      return item.keys().hasAll(['name', 'category', 'seasons', 'colors', 'tags', 'events', 'imageUrl', 'createdAt']) &&
+             // String fields
+             item.category is string &&
+             item.category in ['head', 'top', 'bottom', 'shoe', 'accessory'] &&
+             item.imageUrl is string &&
+             // Array fields - validate they are lists and contain strings
+             item.seasons is list &&
+             item.colors is list &&
+             item.tags is list &&
+             item.events is list &&
+             // Timestamp field
+             item.createdAt is timestamp;
+    }
+    
+    // Helper function to validate outfit structure - all fields and data types
+    function isValidOutfit() {
+      let outfit = request.resource.data;
+      return outfit.keys().hasAll(['name', 'seasons', 'colors', 'tags', 'events', 'imageUrl', 'createdAt']) &&
+             // String fields
+             outfit.imageUrl is string &&
+             // Array fields - validate they are lists
+             outfit.seasons is list &&
+             outfit.colors is list &&
+             outfit.tags is list &&
+             outfit.events is list &&
+             // Optional array field
+             (!('clothingItemIds' in outfit) || outfit.clothingItemIds is list) &&
+             // Timestamp field
+             outfit.createdAt is timestamp;
+    }
+    
+    // Users can only read/write their own data
+    match /users/{userId} {
+      // Allow read/write if authenticated and accessing own data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow create only if all structures are valid
+      allow create: if request.auth != null && 
+                       request.auth.uid == userId &&
+                       isValidUserMeasurements() &&
+                       isValidUserSettings() &&
+                       isValidUserStats();
+      
+      // Allow update - validate only changed nested objects
+      allow update: if request.auth != null && 
+                       request.auth.uid == userId &&
+                       (!('userMeasurements' in request.resource.data.diff(resource.data).affectedKeys()) || isValidUserMeasurements()) &&
+                       (!('userSettings' in request.resource.data.diff(resource.data).affectedKeys()) || isValidUserSettings()) &&
+                       (!('userStats' in request.resource.data.diff(resource.data).affectedKeys()) || isValidUserStats());
+      
+      // Subcollection: Clothing Items
+      match /clothingItems/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && isValidClothingItem();
+        allow update: if request.auth != null && request.auth.uid == userId && isValidClothingItem();
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Subcollection: Outfits
+      match /outfits/{outfitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && isValidOutfit();
+        allow update: if request.auth != null && request.auth.uid == userId && isValidOutfit();
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
