@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "outfittracker-28a32"
-  }
+  },
+  "targets": {
+    "outfittracker-28a32": {
+      "hosting": {
+        "closetcloud": [
+          "closetcloud"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
