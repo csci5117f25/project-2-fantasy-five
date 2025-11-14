@@ -180,19 +180,4 @@ export default {
 .checkbox-label input:checked ~ .checkmark:after {
   display: block;
 }
-
-/* Mobile specific styles */
-@media (max-width: 1023px) {
-  .filter-section {
-    margin-bottom: 1rem;
-  }
-  
-  .section-header {
-    padding: 0.75rem;
-  }
-  
-  .section-content {
-    padding: 0.75rem;
-  }
-}
 </style>

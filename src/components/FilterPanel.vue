@@ -3,7 +3,7 @@
   <div>
     <!-- Mobile Filter Button -->
     <button 
-      v-if="isMobile && showFilterButton" 
+      v-if="isMobile" 
       class="mobile-filter-btn"
       @click="openMobileFilters"
     >
@@ -14,7 +14,7 @@
     </button>
 
     <!-- Desktop Filter Panel (Always Visible) -->
-    <div v-if="!isMobile && showFilterPanel" class="filter-panel desktop">
+    <div v-if="!isMobile" class="filter-panel desktop">
       <div class="filter-header">
         <h3>Filter</h3>
         <button 
@@ -78,7 +78,6 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
 import FilterSection from './FilterSection.vue'
 
 export default {
@@ -88,7 +87,6 @@ export default {
   },
   emits: ['filter-change'],
   setup(props, { emit }) {
-    const route = useRoute()
     const isMobile = ref(false)
     const showMobileFilters = ref(false)
     
@@ -121,15 +119,6 @@ export default {
         options: ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
       }
     ]
-
-    // Don't show filter on profile page
-    const showFilterPanel = computed(() => {
-      return route.name !== 'Profile'
-    })
-
-    const showFilterButton = computed(() => {
-      return route.name !== 'Profile'
-    })
 
     // Check if mobile on mount and on resize
     const checkMobile = () => {
@@ -174,8 +163,6 @@ export default {
     return {
       isMobile,
       showMobileFilters,
-      showFilterPanel,
-      showFilterButton,
       filters,
       filterSections,
       activeFilterCount,
