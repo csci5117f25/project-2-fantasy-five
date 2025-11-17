@@ -1,425 +1,306 @@
-<!-- views/OutfitDetailView.vue -->
 <template>
-  <div class="detail-view" v-if="outfit">
-    <div class="detail-header">
-      <button class="back-btn" @click="$router.back()">← Back</button>
-      <div class="header-actions">
-        <button class="action-btn" @click="toggleFavorite">
+  <div v-if="outfit" class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <button class="btn btn-outline-secondary" @click="$router.back()">
+        ← Back
+      </button>
+
+      <div class="btn-group">
+        <button class="btn btn-light" @click="toggleFavorite">
           {{ outfit.favorite ? '❤️' : '🤍' }}
         </button>
-        <button class="action-btn" @click="editOutfit">✏️</button>
-        <button class="action-btn delete" @click="confirmDelete">🗑️</button>
+
+        <button class="btn btn-light" @click="editOutfit">✏️</button>
+
+        <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
       </div>
     </div>
-    
-    <div class="detail-content">
-      <div class="image-section">
-        <img v-if="outfit.imageUrl" :src="outfit.imageUrl" :alt="outfit.title">
-        <div v-else class="outfit-composition">
-          <div 
-            v-for="item in outfit.itemDetails" 
-            :key="item.id"
-            class="outfit-item-preview"
+
+    <div class="row g-4">
+
+      <!-- Image Section -->
+      <div class="col-12">
+        <div class="card shadow-sm overflow-hidden">
+          <img
+            v-if="outfit.imageUrl"
+            :src="outfit.imageUrl"
+            :alt="outfit.title"
+            class="img-fluid"
+          />
+
+          <!-- Composition Grid -->
+          <div
+            v-else
+            class="row row-cols-2 p-4 g-3 bg-white"
           >
-            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name">
-            <div v-else class="item-placeholder">
-              {{ getCategoryIcon(item.category) }}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="info-section">
-        <h1>{{ outfit.title }}</h1>
-        <p class="description" v-if="outfit.description">{{ outfit.description }}</p>
-        <p class="description placeholder" v-else>No description</p>
-        
-        <div class="outfit-items">
-          <h3>Items in this outfit</h3>
-          <div class="items-list">
-            <div 
-              v-for="item in outfit.itemDetails" 
+            <div
+              v-for="item in outfit.itemDetails"
               :key="item.id"
-              class="outfit-item"
-              @click="$router.push(`/app/clothing/${item.id}`)"
+              class="col"
             >
-              <div class="item-image">
-                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name">
-                <div v-else class="item-placeholder small">
+              <div class="card h-100 d-flex align-items-center justify-content-center bg-light">
+                <img
+                  v-if="item.imageUrl"
+                  :src="item.imageUrl"
+                  class="img-fluid"
+                />
+                <div v-else class="display-5 text-white bg-primary w-100 py-4 text-center">
                   {{ getCategoryIcon(item.category) }}
                 </div>
               </div>
-              <div class="item-info">
-                <h4>{{ item.name }}</h4>
-                <p class="item-category">{{ item.category }}</p>
-                <p class="item-color" v-if="item.color">{{ item.color }}</p>
-              </div>
             </div>
           </div>
         </div>
-        
-        <div class="details-grid">
-          <div class="detail-item" v-if="outfit.season">
-            <span class="label">Season:</span>
-            <span class="value">{{ outfit.season }}</span>
+      </div>
+
+      <!-- Info Section -->
+      <div class="col-12">
+        <div class="card p-4 shadow-sm">
+          <h2 class="fw-bold mb-2">{{ outfit.title }}</h2>
+
+          <p v-if="outfit.description" class="text-muted">
+            {{ outfit.description }}
+          </p>
+          <p v-else class="text-muted fst-italic">No description</p>
+
+          <!-- Outfits items -->
+          <h4 class="mt-4">Items in this outfit</h4>
+
+          <div class="list-group my-3">
+            <div
+              v-for="item in outfit.itemDetails"
+              :key="item.id"
+              class="list-group-item list-group-item-action d-flex align-items-center"
+              @click="$router.push(`/app/clothing/${item.id}`)"
+            >
+              <img
+                v-if="item.imageUrl"
+                class="rounded me-3"
+                width="60"
+                height="60"
+                :src="item.imageUrl"
+              />
+
+              <div v-else class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3"
+                style="width: 60px; height: 60px;">
+                {{ getCategoryIcon(item.category) }}
+              </div>
+
+              <div>
+                <div class="fw-semibold">{{ item.name }}</div>
+                <div class="text-primary small">{{ item.category }}</div>
+                <div class="text-muted small" v-if="item.color">{{ item.color }}</div>
+              </div>
+            </div>
           </div>
-          <div class="detail-item" v-if="outfit.event">
-            <span class="label">Event:</span>
-            <span class="value">{{ outfit.event }}</span>
+
+          <!-- Details Grid -->
+          <div class="row g-3 mt-4">
+            <div class="col-md-4" v-if="outfit.season">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-medium text-secondary">Season</div>
+                <div class="fw-semibold">{{ outfit.season }}</div>
+              </div>
+            </div>
+
+            <div class="col-md-4" v-if="outfit.event">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-medium text-secondary">Event</div>
+                <div class="fw-semibold">{{ outfit.event }}</div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-medium text-secondary">Created</div>
+                <div class="fw-semibold">{{ formatDate(outfit.createdAt) }}</div>
+              </div>
+            </div>
           </div>
-          <div class="detail-item">
-            <span class="label">Created:</span>
-            <span class="value">{{ formatDate(outfit.createdAt) }}</span>
+
+          <!-- Tags -->
+          <div v-if="outfit.tags && outfit.tags.length" class="mt-4">
+            <h4>Tags</h4>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span v-for="tag in outfit.tags" :key="tag" class="badge bg-primary px-3 py-2">
+                {{ tag }}
+              </span>
+            </div>
           </div>
         </div>
-        
-        <div class="tags-section" v-if="outfit.tags && outfit.tags.length > 0">
-          <h3>Tags</h3>
-          <div class="tags">
-            <span v-for="tag in outfit.tags" :key="tag" class="tag">
-              {{ tag }}
-            </span>
-          </div>
-        </div>
+
       </div>
     </div>
+
   </div>
-  
-  <div v-else class="loading">
-    <p>Loading...</p>
+
+  <!-- Loading State -->
+  <div v-else class="text-center py-5">
+    <div class="spinner-border text-primary"></div>
+    <p class="mt-3 text-muted">Loading...</p>
   </div>
 </template>
 
-<script>
-import { useDocument } from 'vuefire'
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore'
-import { db } from '@/firebase'
+<!-- <script>
+import { useDocument } from "vuefire";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { useRoute, useRouter } from "vue-router";
 
 export default {
-  name: 'OutfitDetail',
+  name: "OutfitDetail",
   setup() {
-    const outfitId = this.$route.params.id
-    const outfitRef = doc(db, 'outfits', outfitId)
-    const outfit = useDocument(outfitRef)
-    
-    return { outfit }
+    const route = useRoute();
+    const router = useRouter();
+
+    const outfitRef = doc(db, "outfits", route.params.id);
+    const outfit = useDocument(outfitRef);
+
+    return { outfit, route, router };
   },
   methods: {
     getCategoryIcon(category) {
       const icons = {
-        'Tops': '👕',
-        'Bottoms': '👖',
-        'Shoes': '👟',
-        'Accessories': '👒',
-        'Outerwear': '🧥',
-        'Dresses': '👗'
-      }
-      return icons[category] || '👕'
+        Tops: "👕",
+        Bottoms: "👖",
+        Shoes: "👟",
+        Accessories: "👒",
+        Outerwear: "🧥",
+        Dresses: "👗",
+      };
+      return icons[category] || "👕";
     },
-    
+
     formatDate(date) {
-      return new Date(date).toLocaleDateString()
+      return new Date(date).toLocaleDateString();
     },
-    
+
     async toggleFavorite() {
       try {
-        const outfitRef = doc(db, 'outfits', this.outfit.id)
-        await updateDoc(outfitRef, {
+        await updateDoc(doc(db, "outfits", this.route.params.id), {
           favorite: !this.outfit.favorite,
-          updatedAt: new Date()
-        })
-      } catch (error) {
-        console.error('Error updating favorite:', error)
+          updatedAt: new Date(),
+        });
+      } catch (err) {
+        console.error("Favorite update failed:", err);
       }
     },
-    
+
     editOutfit() {
-      this.$router.push(`/app/create?edit=${this.outfit.id}`)
+      this.$router.push(`/app/create?edit=${this.outfit.id}`);
     },
-    
+
     confirmDelete() {
-      if (confirm('Are you sure you want to delete this outfit?')) {
-        this.deleteOutfit()
+      if (confirm("Are you sure you want to delete this outfit?")) {
+        this.deleteOutfit();
       }
     },
-    
+
     async deleteOutfit() {
       try {
-        await deleteDoc(doc(db, 'outfits', this.outfit.id))
-        this.$router.push('/app/outfits')
-      } catch (error) {
-        console.error('Error deleting outfit:', error)
-        alert('Failed to delete outfit')
+        await deleteDoc(doc(db, "outfits", this.route.params.id));
+        this.$router.push("/app/outfits");
+      } catch (err) {
+        console.error("Delete failed:", err);
+        alert("Failed to delete outfit");
       }
-    }
-  }
-}
+    },
+  },
+};
+</script> -->
+
+<script>
+export default {
+  name: "OutfitDetail",
+
+  data() {
+    return {
+      loading: true,
+      outfit: null,
+    };
+  },
+
+  created() {
+    // --- MOCK DATA ---
+    setTimeout(() => {
+      this.outfit = {
+        id: "mock123",
+        title: "Cozy Winter Look",
+        description:
+          "Soft knit sweater paired with warm leggings and snow boots.",
+        favorite: true,
+        createdAt: Date.now(),
+        season: "Winter",
+        event: "Casual",
+        tags: ["warm", "cozy", "neutral"],
+        imageUrl:
+          "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=500&q=60",
+
+        itemDetails: [
+          {
+            id: "item1",
+            name: "Beige Knit Sweater",
+            category: "Tops",
+            color: "Cream",
+            imageUrl:
+              "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=60",
+          },
+          {
+            id: "item2",
+            name: "Black Winter Leggings",
+            category: "Bottoms",
+            color: "Black",
+            imageUrl:
+              "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=60",
+          },
+          {
+            id: "item3",
+            name: "Snow Boots",
+            category: "Shoes",
+            color: "Brown",
+            imageUrl:
+              "https://images.unsplash.com/photo-1528701800489-20be9fdef1f5?auto=format&fit=crop&w=400&q=60",
+          },
+        ],
+      };
+
+      this.loading = false;
+    }, 800); // simulate load
+  },
+
+  methods: {
+    getCategoryIcon(category) {
+      const icons = {
+        Tops: "👕",
+        Bottoms: "👖",
+        Shoes: "👟",
+        Accessories: "👒",
+        Outerwear: "🧥",
+        Dresses: "👗",
+      };
+      return icons[category] || "👕";
+    },
+
+    formatDate(date) {
+      return new Date(date).toLocaleDateString();
+    },
+
+    toggleFavorite() {
+      this.outfit.favorite = !this.outfit.favorite;
+    },
+
+    editOutfit() {
+      alert("Edit clicked (mock)!");
+    },
+
+    confirmDelete() {
+      if (confirm("Delete mock outfit?")) {
+        alert("Deleted!");
+        this.$router.push("/app/outfits");
+      }
+    },
+  },
+};
 </script>
-
-<style scoped>
-.detail-view {
-  min-height: calc(100vh - 80px);
-  background: #f5f5f5;
-}
-
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: #666;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
-  transition: background 0.3s ease;
-}
-
-.action-btn:hover {
-  background: #f0f0f0;
-}
-
-.action-btn.delete:hover {
-  background: #fee;
-}
-
-.detail-content {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.image-section {
-  margin-bottom: 2rem;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.image-section img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.outfit-composition {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  padding: 2rem;
-  background: white;
-  min-height: 400px;
-}
-
-.outfit-item-preview {
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f8f8f8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.outfit-item-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.item-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  color: white;
-}
-
-.item-placeholder.small {
-  font-size: 1.5rem;
-  min-height: 80px;
-}
-
-.info-section h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: #333;
-}
-
-.description {
-  margin: 0 0 2rem 0;
-  color: #666;
-  line-height: 1.6;
-  font-size: 1.1rem;
-}
-
-.description.placeholder {
-  color: #999;
-  font-style: italic;
-}
-
-.outfit-items {
-  margin-bottom: 2rem;
-}
-
-.outfit-items h3 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.outfit-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8f8f8;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.outfit-item:hover {
-  background: #f0f0f0;
-}
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.item-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.item-info {
-  flex: 1;
-}
-
-.item-info h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  color: #333;
-}
-
-.item-category {
-  margin: 0 0 0.25rem 0;
-  color: #667eea;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.item-color {
-  margin: 0;
-  color: #666;
-  font-size: 0.8rem;
-}
-
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: #f8f8f8;
-  border-radius: 12px;
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-}
-
-.detail-item .label {
-  font-weight: 500;
-  color: #666;
-}
-
-.detail-item .value {
-  font-weight: 600;
-  color: #333;
-}
-
-.tags-section h3 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1.1rem;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  background: #667eea;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 16px;
-  font-size: 0.9rem;
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: calc(100vh - 80px);
-  color: #666;
-}
-
-@media (max-width: 768px) {
-  .detail-content {
-    padding: 1rem;
-  }
-  
-  .info-section h1 {
-    font-size: 1.5rem;
-  }
-  
-  .outfit-composition {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-    min-height: 300px;
-  }
-  
-  .details-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

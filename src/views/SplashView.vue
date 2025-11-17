@@ -1,23 +1,34 @@
 <!-- views/SplashView.vue -->
 <template>
-  <div class="splash">
-    <div class="hero-section">
-      <div class="logo-container">
-        <h1 class="logo">CLOSET CLOUD</h1>
-        <p class="tagline">Track what you wear<br>Simplify your Style</p>
+  <div class="splash d-flex flex-column min-vh-100 text-white">
+    
+    <!-- HERO SECTION -->
+    <div class="flex-grow-1 d-flex justify-content-center align-items-center text-center px-4">
+      <div>
+        <h1 class="display-3 fw-bold mb-3">CLOSET CLOUD</h1>
+        <p class="lead opacity-75">Track what you wear<br>Simplify your Style</p>
       </div>
     </div>
-    
-    <div class="auth-section">
-      <div class="auth-buttons">
-        <button class="btn btn-primary" @click="$router.push('/signup')">
+
+    <!-- AUTH BUTTONS -->
+    <div class="p-4">
+      <div class="d-grid gap-3 mx-auto" style="max-width: 300px">
+        <button 
+          class="btn btn-light btn-lg fw-bold text-primary"
+          @click="$router.push('/signup')"
+        >
           Sign Up
         </button>
-        <button class="btn btn-secondary" @click="$router.push('/login')">
-          LOG IN
+
+        <button 
+          class="btn btn-outline-light btn-lg fw-bold"
+          @click="$router.push('/login')"
+        >
+          Log In
         </button>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -29,89 +40,6 @@ export default {
 
 <style scoped>
 .splash {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.hero-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.logo-container {
-  text-align: center;
-}
-
-.logo {
-  font-size: 3.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  letter-spacing: 2px;
-}
-
-.tagline {
-  font-size: 1.5rem;
-  line-height: 1.4;
-  opacity: 0.9;
-}
-
-.auth-section {
-  padding: 2rem;
-}
-
-.auth-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.btn {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.btn-primary {
-  background: white;
-  color: #667eea;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: white;
-  border: 2px solid white;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-@media (max-width: 768px) {
-  .logo {
-    font-size: 2.5rem;
-  }
-  
-  .tagline {
-    font-size: 1.2rem;
-  }
-  
-  .auth-section {
-    padding: 1.5rem;
-  }
 }
 </style>

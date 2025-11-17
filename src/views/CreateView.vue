@@ -1,223 +1,180 @@
 <template>
-  <div class="create-view">
-    <div class="create-header">
-      <button class="back-btn" @click="$router.back()">
-        ← Back
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
+      <h2 class="mb-0">Add New {{ currentType }}</h2>
+      <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
       </button>
-      <h2>Add New {{ currentType }}</h2>
-      <div class="header-actions">
-        <button class="save-btn" @click="saveItem" :disabled="!isFormValid || saving">
-          {{ saving ? 'Saving...' : 'Save' }}
-        </button>
-      </div>
     </div>
-    
-    <div class="create-container">
-      <div class="type-selector">
-        <button 
-          v-for="type in types" 
-          :key="type"
-          class="type-btn"
-          :class="{ active: currentType === type }"
-          @click="currentType = type"
-        >
-          {{ type }}
-        </button>
+
+    <!-- Type Selector -->
+    <div class="btn-group mb-4 w-100" role="group">
+      <button
+        v-for="type in types"
+        :key="type"
+        type="button"
+        class="btn"
+        :class="currentType === type ? 'btn-dark' : 'btn-outline-dark'"
+        @click="currentType = type"
+      >
+        {{ type }}
+      </button>
+    </div>
+
+    <!-- Image Upload Section -->
+    <div class="mb-4 text-center">
+      <div class="mb-2">
+        <button class="btn btn-outline-secondary me-2" @click="takePhoto">📸 Take Photo</button>
+        <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
       </div>
-      
-      <div class="form-container">
-        <div class="image-upload-section">
-          <div class="upload-options">
-            <button class="upload-btn" @click="takePhoto">
-              <span class="upload-icon">📸</span>
-              Take a Photo
-            </button>
-            <button class="upload-btn" @click="uploadImage">
-              <span class="upload-icon">📁</span>
-              Upload an Image
-            </button>
-          </div>
-          
-          <div class="image-preview" v-if="imageUrl">
-            <img :src="imageUrl" alt="Preview">
-            <button class="remove-image" @click="removeImage">×</button>
-          </div>
-          
-          <div v-else class="upload-placeholder">
-            <div class="placeholder-icon">📷</div>
-            <p>Upload or take a photo to get started</p>
-          </div>
-        </div>
-        
-        <div class="form-section">
-          <div class="form-group">
-            <label for="title">{{ currentType === 'Outfit' ? 'Outfit Title' : 'Item Name' }} *</label>
-            <input
-              id="title"
-              v-model="formData.title"
-              type="text"
-              :placeholder="currentType === 'Outfit' ? 'Enter outfit title' : 'Enter item name'"
-              required
-            >
-          </div>
-          
-          <div class="form-group">
-            <label for="description">Description</label>
-            <textarea
-              id="description"
-              v-model="formData.description"
-              rows="3"
-              placeholder="Add a description (optional)..."
-            ></textarea>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="category">Category *</label>
-              <select id="category" v-model="formData.category" required>
-                <option value="">Select Category</option>
-                <option v-for="category in categories" :key="category" :value="category">
-                  {{ category }}
-                </option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="season">Season</label>
-              <select id="season" v-model="formData.season">
-                <option value="">Select Season</option>
-                <option v-for="season in seasons" :key="season" :value="season">
-                  {{ season }}
-                </option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="color">Color</label>
-              <select id="color" v-model="formData.color">
-                <option value="">Select Color</option>
-                <option v-for="color in colors" :key="color" :value="color">
-                  {{ color }}
-                </option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="event">Event Type</label>
-              <select id="event" v-model="formData.event">
-                <option value="">Select Event</option>
-                <option v-for="event in events" :key="event" :value="event">
-                  {{ event }}
-                </option>
-              </select>
-            </div>
-          </div>
 
-          <!-- Additional fields for Clothing -->
-          <div v-if="currentType === 'Clothing'" class="form-row">
-            <div class="form-group">
-              <label for="brand">Brand</label>
-              <input
-                id="brand"
-                v-model="formData.brand"
-                type="text"
-                placeholder="Brand name (optional)"
-              >
-            </div>
-            
-            <div class="form-group">
-              <label for="size">Size</label>
-              <input
-                id="size"
-                v-model="formData.size"
-                type="text"
-                placeholder="Size (optional)"
-              >
-            </div>
-          </div>
-
-          <!-- Additional fields for Outfit -->
-          <div v-if="currentType === 'Outfit'" class="form-group">
-            <label>Outfit Items</label>
-            <div class="outfit-items">
-              <div 
-                v-for="item in selectedItems" 
-                :key="item.id"
-                class="outfit-item"
-                @click="removeFromOutfit(item)"
-              >
-                <span>{{ item.name }}</span>
-                <button class="remove-item">×</button>
-              </div>
-              <button class="add-item-btn" @click="showItemSelector = true">
-                + Add Clothing Item
-              </button>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>Tags</label>
-            <div class="tags-input">
-              <input
-                v-model="newTag"
-                type="text"
-                placeholder="Add tags..."
-                @keydown.enter.prevent="addTag"
-                @keydown.space.prevent="addTag"
-              >
-              <button @click="addTag" class="add-tag-btn">+</button>
-            </div>
-            <div class="tags-list">
-              <span v-for="tag in formData.tags" :key="tag" class="tag">
-                {{ tag }}
-                <button @click="removeTag(tag)" class="remove-tag">×</button>
-              </span>
-            </div>
-          </div>
-        </div>
+      <div v-if="imageUrl" class="position-relative d-inline-block">
+        <img :src="imageUrl" alt="Preview" class="img-fluid rounded mb-2">
+        <button @click="removeImage" class="btn-close position-absolute top-0 end-0"></button>
+      </div>
+      <div v-else class="border border-secondary rounded py-5 px-3">
+        <div class="fs-1 mb-2">📷</div>
+        <p class="mb-0 text-muted">Upload or take a photo to get started</p>
       </div>
     </div>
 
-    <!-- Item Selector Modal for Outfits -->
-    <div v-if="showItemSelector" class="modal-overlay" @click="showItemSelector = false">
-      <div class="modal-content" @click.stop>
-        <h3>Select Clothing Items</h3>
-        <div class="item-selector">
-          <div 
-            v-for="item in availableItems" 
+    <!-- Form -->
+    <form>
+      <div class="mb-3">
+        <label class="form-label">{{ currentType === 'Outfit' ? 'Outfit Title' : 'Item Name' }} *</label>
+        <input v-model="formData.title" type="text" class="form-control" placeholder="Enter title" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea v-model="formData.description" class="form-control" rows="3" placeholder="Optional"></textarea>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Category *</label>
+          <select v-model="formData.category" class="form-select" required>
+            <option value="">Select Category</option>
+            <option v-for="category in categories" :key="category">{{ category }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Season</label>
+          <select v-model="formData.season" class="form-select">
+            <option value="">Select Season</option>
+            <option v-for="season in seasons" :key="season">{{ season }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Color</label>
+          <select v-model="formData.color" class="form-select">
+            <option value="">Select Color</option>
+            <option v-for="color in colors" :key="color">{{ color }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Event Type</label>
+          <select v-model="formData.event" class="form-select">
+            <option value="">Select Event</option>
+            <option v-for="event in events" :key="event">{{ event }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="currentType === 'Clothing'" class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Brand</label>
+          <input v-model="formData.brand" type="text" class="form-control" placeholder="Optional">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Size</label>
+          <input v-model="formData.size" type="text" class="form-control" placeholder="Optional">
+        </div>
+      </div>
+
+      <!-- Outfit Items -->
+      <div v-if="currentType === 'Outfit'" class="mb-3">
+        <label class="form-label">Outfit Items</label>
+        <div class="d-flex flex-wrap gap-2">
+          <div
+            v-for="item in selectedItems"
             :key="item.id"
-            class="selector-item"
-            :class="{ selected: isItemSelected(item) }"
-            @click="toggleItemSelection(item)"
+            class="badge bg-secondary d-flex align-items-center gap-1"
           >
-            <div class="item-preview">
-              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name">
-              <div v-else class="item-placeholder">{{ getCategoryIcon(item.category) }}</div>
-            </div>
-            <div class="item-info">
-              <h4>{{ item.name || item.title }}</h4>
-              <p>{{ item.category }}</p>
+            {{ item.name }}
+            <button type="button" class="btn-close btn-close-white btn-sm" @click="removeFromOutfit(item)"></button>
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" @click="showItemSelector = true">
+            + Add Clothing Item
+          </button>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="mb-3">
+        <label class="form-label">Tags</label>
+        <div class="input-group mb-2">
+          <input
+            v-model="newTag"
+            type="text"
+            class="form-control"
+            placeholder="Add tags..."
+            @keydown.enter.prevent="addTag"
+            @keydown.space.prevent="addTag"
+          >
+          <button class="btn btn-outline-secondary" type="button" @click="addTag">+</button>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span v-for="tag in formData.tags" :key="tag" class="badge bg-info text-dark">
+            {{ tag }}
+            <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeTag(tag)"></button>
+          </span>
+        </div>
+      </div>
+    </form>
+
+    <!-- Item Selector Modal -->
+    <div v-if="showItemSelector" class="modal d-block" tabindex="-1" @click="showItemSelector = false">
+      <div class="modal-dialog modal-dialog-scrollable" @click.stop>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Select Clothing Items</h5>
+            <button type="button" class="btn-close" @click="showItemSelector = false"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-2">
+              <div
+                v-for="item in availableItems"
+                :key="item.id"
+                class="col-4 text-center border p-2 rounded"
+                :class="{ 'border-primary': isItemSelected(item) }"
+                @click="toggleItemSelection(item)"
+                style="cursor:pointer"
+              >
+                <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1" alt="">
+                <div v-else class="fs-3 mb-1">👕</div>
+                <div class="small">{{ item.name || item.title }}</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="modal-actions">
-          <button @click="showItemSelector = false" class="btn-secondary">Cancel</button>
-          <button @click="confirmItemSelection" class="btn-primary">Add Selected</button>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+          </div>
         </div>
       </div>
     </div>
-    
-    <input
-      ref="fileInput"
-      type="file"
-      accept="image/*"
-      @change="handleFileSelect"
-      style="display: none"
-    >
+
+    <!-- Hidden file input -->
+    <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
   </div>
 </template>
+
 
 <script>
 import { ref, computed, onMounted } from 'vue'
@@ -452,454 +409,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-/* Your existing styles remain the same */
-.create-view {
-  min-height: calc(100vh - 80px);
-  background: #f5f5f5;
-}
-
-.create-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.create-header h2 {
-  margin: 0;
-  font-size: 1.3rem;
-  color: #333;
-}
-
-.save-btn {
-  background: #000;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.save-btn:disabled {
-  background: #666;
-  cursor: not-allowed;
-}
-
-.create-container {
-  padding: 1.5rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.type-selector {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.type-btn {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.type-btn.active {
-  background: #000;
-  color: white;
-}
-
-.form-container {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.image-upload-section {
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.upload-options {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-bottom: 2rem;
-}
-
-.upload-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  border: 2px dashed #e0e0e0;
-  background: #fafafa;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.upload-btn:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-}
-
-.upload-icon {
-  font-size: 1.2rem;
-}
-
-.image-preview {
-  position: relative;
-  max-width: 300px;
-  margin: 0 auto;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.image-preview img {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-}
-
-.remove-image {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0,0,0,0.7);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  cursor: pointer;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.upload-placeholder {
-  border: 2px dashed #e0e0e0;
-  border-radius: 12px;
-  padding: 3rem 2rem;
-  background: #fafafa;
-}
-
-.placeholder-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.upload-placeholder p {
-  margin: 0;
-  color: #666;
-}
-
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-  font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.outfit-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.outfit-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: #f8f8f8;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.outfit-item:hover {
-  background: #f0f0f0;
-}
-
-.remove-item {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0.25rem;
-}
-
-.add-item-btn {
-  padding: 0.75rem;
-  border: 2px dashed #e0e0e0;
-  background: #fafafa;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.3s ease;
-}
-
-.add-item-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
-}
-
-.tags-input {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.tags-input input {
-  flex: 1;
-}
-
-.add-tag-btn {
-  padding: 0.75rem 1rem;
-  background: #000;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.tag {
-  background: #f0f0f0;
-  padding: 0.25rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.remove-tag {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1rem;
-  color: #666;
-  padding: 0;
-  width: 1rem;
-  height: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-content h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-}
-
-.item-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.selector-item {
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.selector-item.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.selector-item:hover {
-  border-color: #667eea;
-}
-
-.item-preview {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 0 auto 0.5rem;
-}
-
-.item-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.item-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-}
-
-.item-info h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.item-info p {
-  margin: 0;
-  font-size: 0.7rem;
-  color: #666;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-}
-
-.btn-primary {
-  background: #000;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-secondary {
-  background: #f0f0f0;
-  color: #333;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .create-container {
-    padding: 1rem;
-  }
-  
-  .form-container {
-    padding: 1.5rem;
-  }
-  
-  .upload-options {
-    flex-direction: column;
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .create-header h2 {
-    font-size: 1.1rem;
-  }
-  
-  .item-selector {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  }
-}
-</style>
