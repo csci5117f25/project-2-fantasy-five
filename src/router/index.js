@@ -63,14 +63,14 @@ const routes = [
     //       title: 'Virtual Try-On - Closet Cloud'
     //     }
     //   },
-    //   {
-    //     path: 'profile',
-    //     name: 'Profile',
-    //     component: () => import('@/views/ProfileView.vue'),
-    //     meta: { 
-    //       title: 'Profile - Closet Cloud'
-    //     }
-    //   },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/ProfileView.vue'),
+        meta: { 
+          title: 'Profile - Closet Cloud'
+        }
+      },
       {
         path: 'create',
         name: 'Create',

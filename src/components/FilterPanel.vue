@@ -156,7 +156,7 @@ export default {
 }
 
 .mobile-filter-btn:hover {
-  background-color: #e9ecef; 
+  background-color: #e9ecef;
   transform: scale(1.03);
 }
 
