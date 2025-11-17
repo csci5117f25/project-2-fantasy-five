@@ -11,24 +11,24 @@ const routes = [
       title: 'Closet Cloud - Track Your Style'
     }
   },
-  // {
-  //   path: '/login',
-  //   name: 'Login',
-  //   component: () => import('@/views/LoginView.vue'),
-  //   meta: { 
-  //     requiresAuth: false,
-  //     title: 'Login - Closet Cloud'
-  //   }
-  // },
-  // {
-  //   path: '/signup',
-  //   name: 'SignUp',
-  //   component: () => import('@/views/SignUpView.vue'),
-  //   meta: { 
-  //     requiresAuth: false,
-  //     title: 'Sign Up - Closet Cloud'
-  //   }
-  // },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { 
+      requiresAuth: false,
+      title: 'Login - Closet Cloud'
+    }
+  },
+  {
+    path: '/signup',
+    name: 'SignUp',
+    component: () => import('@/views/SignUpView.vue'),
+    meta: { 
+      requiresAuth: false,
+      title: 'Sign Up - Closet Cloud'
+    }
+  },
   {
     path: '/app',
     name: 'MainLayout',
