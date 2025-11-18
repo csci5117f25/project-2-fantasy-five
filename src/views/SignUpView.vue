@@ -39,6 +39,18 @@
                                     required
                                 />
                             </div>
+                            <!-- Email -->
+                            <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    class="form-control"
+                                    v-model="form.email"
+                                    required
+                                />
+                            </div>
+
 
                             <!-- Username -->
                             <div class="mb-3">
@@ -120,6 +132,12 @@
 </template>
 
 <script>
+import { ref } from "vue"
+import { useRouter } from "vue-router"
+import { auth, db, storage } from "@/firebase"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore"
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage"
 
 export default {
     name: "SignUpView",
@@ -127,6 +145,7 @@ export default {
         return {
             form: {
                 name: "",
+                email: "",
                 username: "",
                 password: "",
                 confirmPassword: "",
@@ -146,12 +165,15 @@ export default {
             }
         },
         // check account submission
-        handleSubmit() {
+        async handleSubmit() {
             this.errors = [];
 
             if (!this.form.name.trim()) {
                 this.errors.push("Name is required.");
             }
+            if (!this.form.email.trim())
+                this.errors.push("Email is required.");
+
             if (!this.form.username.trim()) {
                 this.errors.push("username is required.");
             }
@@ -171,32 +193,53 @@ export default {
                 return;
             }
 
+            try{
+                const userCred = await createUserWithEmailAndPassword(auth, this.form.email, this.form.password)
+                const user = userCred.user
+                let profilePicURL = ""
+                await setDoc(doc(db, "users", user.uid), {
+                    name: this.form.name,
+                    username: this.form.username,
+                    email: this.form.email,
+                    profilePic: profilePicURL,
+                    createdAt: new Date()
+                })
+
+                this.$router.push("/app/outfits")
+
+            }
+            catch (error) {
+                console.error(error)
+                this.errors.push(error.message)
+            }
             // all inputs valid
             // now build data to send to server
-            const formData = new FormData();
-            formData.append("name", this.form.name);
-            formData.append("username", this.form.username);
-            formData.append("password", this.form.password);
-            if (this.form.profilePicture) {
-                formData.append("profilePicture", this.form.profilePicture);
-            }
 
-            // reset form
-            this.form.name = "";
-            this.form.username = "";
-            this.form.password = "";
-            this.form.confirmPassword = "";
-            this.form.profilePicture = null;
 
-            const fileInput = document.getElementById("profilePicture");
-            if (fileInput) {
-                fileInput.value = "";
-            }
+            // const formData = new FormData();
+            // formData.append("name", this.form.name);
+            // formData.append("username", this.form.username);
+            // formData.append("password", this.form.password);
+            // if (this.form.profilePicture) {
+            //     formData.append("profilePicture", this.form.profilePicture);
+            // }
 
-            alert("all inputs valid; account data ready to send to server");
+            // // reset form
+            // this.form.name = "";
+            // this.form.username = "";
+            // this.form.password = "";
+            // this.form.confirmPassword = "";
+            // this.form.profilePicture = null;
+
+            // const fileInput = document.getElementById("profilePicture");
+            // if (fileInput) {
+            //     fileInput.value = "";
+            // }
+
+            // alert("all inputs valid; account data ready to send to server");
         },
         goToLogin() {
-           this.$router.push('login')
+           this.$router.push('/login')
         }
     }
 };

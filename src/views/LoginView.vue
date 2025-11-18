@@ -57,6 +57,16 @@
                                 Log In
                             </button>
 
+                            <!-- Google Login -->
+                            <button 
+                            type="button" 
+                            class="btn btn-danger w-100 mt-3"
+                            @click="signInWithGoogle"
+                            >
+                            <i class="fab fa-google me-2"></i> Continue with Google
+                            </button>
+
+
                             <!-- Sign up link -->
                             <div class="mt-3 text-center">
                                 <span>No account?</span>
@@ -78,23 +88,63 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { auth, db } from "@/firebase";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 export default {
     name: 'LoginView',
     setup() {
         const router = useRouter()
 
         const form = ref({
-            username: '',
+            email : '',
             password: ''
         })
 
         const errors = ref([])
 
+        const googleProvider = new GoogleAuthProvider();
+
+        const signInWithGoogle = async () => {
+        errors.value = [];
+
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+
+            // Firestore user
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+            await setDoc(userDocRef, {
+                name: user.displayName || "",
+                email: user.email,
+                profilePic: user.photoURL || "",
+                username: user.email.split("@")[0],
+                createdAt: new Date(),
+                provider: "google",
+            });
+            }
+
+            router.push("/app/outfits");
+        } catch (error) {
+            console.error(error);
+            errors.value.push(error.message);
+        }
+        };
+
+        // manual user
         const handleSubmit = async () => {
             errors.value = []
+            if (!form.value.email.trim()) 
+                errors.value.push("Email is required.")
 
             if (!form.value.username.trim()) {
                 errors.value.push('Username is required.')
@@ -108,16 +158,20 @@ export default {
                 return
             }
 
-            // to be sent to server
-            const payload = {
-                username: form.value.username,
-                password: form.value.password
+            try {
+                await signInWithEmailAndPassword(
+                    auth,
+                    form.value.email,
+                    form.value.password
+                )
+
+                router.push("/app/outfits")
+
+            } catch (error) {
+                errors.value.push("Invalid email or password")
+                console.error(error)
             }
 
-            alert("all inputs valid; ready to log in")
-
-            form.value.username = ''
-            form.value.password = ''
         }
 
         const goToSignUp = () => {
@@ -128,7 +182,8 @@ export default {
             form,
             errors,
             handleSubmit,
-            goToSignUp
+            goToSignUp,
+            signInWithGoogle
         }
     }
 }
