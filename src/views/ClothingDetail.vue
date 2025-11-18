@@ -88,7 +88,7 @@
   </div>
 </template>
 
-<!-- <script>
+<script>
 import { useDocument } from 'vuefire'
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -132,7 +132,7 @@ export default {
     },
     
     editItem() {
-      this.$router.push(`/app/create?edit=${this.item.id}`)
+      this.$router.push(`/app/clothing/${this.item.id}/edit`);
     },
     
     confirmDelete() {
@@ -148,57 +148,6 @@ export default {
       } catch (error) {
         console.error('Error deleting item:', error)
         alert('Failed to delete item')
-      }
-    }
-  }
-}
-</script> -->
-
-<script>
-export default {
-  name: 'ClothingDetail',
-  data() {
-    return {
-      // Mock data for testing
-      item: {
-        id: '1',
-        name: 'Blue Denim Jacket',
-        category: 'Outerwear',
-        description: 'A stylish blue denim jacket perfect for spring and fall.',
-        color: 'Blue',
-        season: 'Spring/Fall',
-        event: 'Casual',
-        tags: ['Denim', 'Jacket', 'Casual'],
-        imageUrl: '', // leave empty to see placeholder
-        favorite: false,
-        createdAt: new Date()
-      }
-    }
-  },
-  methods: {
-    getCategoryIcon(category) {
-      const icons = {
-        'Tops': '👕',
-        'Bottoms': '👖',
-        'Shoes': '👟',
-        'Accessories': '👒',
-        'Outerwear': '🧥',
-        'Dresses': '👗'
-      }
-      return icons[category] || '👕'
-    },
-    formatDate(date) {
-      return new Date(date).toLocaleDateString()
-    },
-    toggleFavorite() {
-      this.item.favorite = !this.item.favorite
-    },
-    editItem() {
-      alert('Edit action (mock)')
-    },
-    confirmDelete() {
-      if (confirm('Are you sure you want to delete this item?')) {
-        this.item = null
       }
     }
   }

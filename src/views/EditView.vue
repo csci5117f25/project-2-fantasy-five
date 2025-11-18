@@ -3,33 +3,19 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Add New {{ currentType }}</h2>
+      <h2 class="mb-0">Edit {{ currentType }}</h2>
       <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveItem">
         {{ saving ? 'Saving...' : 'Save' }}
       </button>
     </div>
 
-    <!-- Type Selector -->
-    <div class="btn-group mb-4 w-100" role="group">
-      <button
-        v-for="type in types"
-        :key="type"
-        type="button"
-        class="btn"
-        :class="currentType === type ? 'btn-dark' : 'btn-outline-dark'"
-        @click="currentType = type"
-      >
-        {{ type }}
-      </button>
+    <!-- Type Display -->
+    <div class="mb-4">
+      <span class="badge bg-secondary fs-6">{{ currentType }}</span>
     </div>
 
-    <!-- Image Upload Section -->
+    <!-- Image Section -->
     <div class="mb-4 text-center">
-      <div class="mb-2">
-        <button class="btn btn-outline-secondary me-2" @click="takePhoto">📸 Take Photo</button>
-        <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
-      </div>
-
       <div v-if="imageUrl" class="position-relative d-inline-block">
         <img :src="imageUrl" alt="Preview" class="img-fluid rounded mb-2">
         <button @click="removeImage" class="btn-close position-absolute top-0 end-0"></button>
@@ -37,6 +23,10 @@
       <div v-else class="border border-secondary rounded py-5 px-3">
         <div class="fs-1 mb-2">📷</div>
         <p class="mb-0 text-muted">Upload or take a photo to get started</p>
+      </div>
+      <div class="mt-2">
+        <button class="btn btn-outline-secondary me-2" @click="takePhoto">📸 Take Photo</button>
+        <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
       </div>
     </div>
 
@@ -53,6 +43,7 @@
       </div>
 
       <div class="row g-3 mb-3">
+        <!-- Category -->
         <div class="col-md-6">
           <label class="form-label">Category *</label>
           <select v-model="formData.category" class="form-select" required>
@@ -60,6 +51,8 @@
             <option v-for="category in categories" :key="category">{{ category }}</option>
           </select>
         </div>
+
+        <!-- Season -->
         <div class="col-md-6">
           <label class="form-label">Season</label>
           <select v-model="formData.season" class="form-select">
@@ -70,6 +63,7 @@
       </div>
 
       <div class="row g-3 mb-3">
+        <!-- Color -->
         <div class="col-md-6">
           <label class="form-label">Color</label>
           <div class="input-group">
@@ -87,6 +81,8 @@
             <button class="btn btn-outline-secondary" type="button" @click="addColor">+</button>
           </div>
         </div>
+
+        <!-- Event -->
         <div class="col-md-6">
           <label class="form-label">Event Type</label>
           <div class="input-group">
@@ -106,6 +102,7 @@
         </div>
       </div>
 
+      <!-- Clothing-specific -->
       <div v-if="currentType === 'Clothing'" class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Brand</label>
@@ -190,28 +187,21 @@
       </div>
     </div>
 
-    <!-- Hidden file input -->
     <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
   </div>
 </template>
 
-
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage, auth } from '@/firebase'
 
 export default {
-  name: 'CreateView',
+  name: 'EditView',
   setup() {
-    const router = useRouter()
-    const fileInput = ref(null)
-    
-    const currentType = ref('Clothing')
-    const types = ['Clothing', 'Outfit']
-    
+    const currentType = ref('Outfit') 
+    const formData = ref({
+      title: '', description: '', category: '', season: '', color: '', event: '',
+      brand: '', size: '', tags: []
+    })
 
     const imageUrl = ref(null)
     const imageFile = ref(null)
@@ -220,93 +210,40 @@ export default {
     const newEvent = ref('')
     const saving = ref(false)
 
-    const showItemSelector = ref(false)
-    
-    const formData = ref({
-      title: '',
-      description: '',
-      category: '',
-      season: '',
-      color: '',
-      event: '',
-      brand: '',
-      size: '',
-      tags: []
-    })
-
     const selectedItems = ref([])
     const availableItems = ref([])
+    const showItemSelector = ref(false)
 
-    const categories = ['Tops', 'Bottoms', 'Shoes', 'Accessories', 'Outerwear', 'Dresses']
-    const seasons = ['Spring', 'Summer', 'Fall', 'Winter', 'All Season']
-    const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
-    const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
+    const categories = ['Tops','Bottoms','Shoes','Accessories','Outerwear','Dresses']
+    const seasons = ['Spring','Summer','Fall','Winter','All Season']
+    const colors = ['Black','White','Red','Blue','Green','Yellow','Purple','Pink','Orange','Brown','Gray','Multi']
+    const events = ['Casual','Formal','Work','Party','Sports','Beach','Date','Travel']
 
     const isFormValid = computed(() => {
-      const basicValid = formData.value.title.trim() !== '' && 
-                        formData.value.category !== '' && 
-                        imageUrl.value !== null
-      
-      if (currentType.value === 'Outfit') {
-        return basicValid && selectedItems.value.length > 0
-      }
-      
-      return basicValid
+      const basicValid = formData.value.title.trim() && formData.value.category && imageUrl.value
+      return currentType.value === 'Outfit' ? basicValid && selectedItems.value.length : basicValid
     })
 
-    const loadAvailableItems = async () => {
-      try {
-        const user = auth.currentUser
-        if (!user) return
-
-        const clothingQuery = query(
-          collection(db, 'clothing'),
-          where('userId', '==', user.uid)
-        )
-        const querySnapshot = await getDocs(clothingQuery)
-        
-        availableItems.value = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-      } catch (error) {
-        console.error('Error loading clothing items:', error)
+    const loadMockData = () => {
+      if (currentType.value === 'Outfit') {
+        formData.value = {
+          title: 'Winter Casual Outfit', description: 'Chilly days outfit', category: 'Outfit',
+          season: 'Winter', color: '', event: 'Casual', brand: '', size: '', tags: ['warm','cozy']
+        }
+        imageUrl.value = 'https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=500&q=60'
+        selectedItems.value = [
+          { id:'item1', name:'Beige Knit Sweater', category:'Tops', color:'Cream', imageUrl:'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=60' },
+          { id:'item2', name:'Black Winter Leggings', category:'Bottoms', color:'Black', imageUrl:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=60' },
+        ]
+        availableItems.value = [...selectedItems.value]
       }
-    }
-
-    const takePhoto = () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        alert('Camera functionality would be implemented here. For now, please upload an image.')
-      } else {
-        uploadImage()
-      }
-    }
-
-    const uploadImage = () => {
-      fileInput.value.click()
-    }
-
-    const handleFileSelect = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        imageFile.value = file
-        imageUrl.value = URL.createObjectURL(file)
-      }
-    }
-
-    const removeImage = () => {
-      imageUrl.value = null
-      imageFile.value = null
-      fileInput.value.value = ''
     }
 
     const addTag = () => {
       const tag = newTag.value.trim()
-      if (tag && !formData.value.tags.includes(tag)) {
-        formData.value.tags.push(tag)
-        newTag.value = ''
-      }
+      if(tag && !formData.value.tags.includes(tag)) { formData.value.tags.push(tag); newTag.value = '' }
     }
+    const removeTag = (tag) => { formData.value.tags = formData.value.tags.filter(t => t !== tag) }
 
     const addColor = () => {
       const color = newColor.value.trim()
@@ -320,131 +257,25 @@ export default {
       newEvent.value = ''
     }
 
-    const removeTag = (tag) => {
-      formData.value.tags = formData.value.tags.filter(t => t !== tag)
-    }
-
-    const getCategoryIcon = (category) => {
-      const icons = {
-        'Tops': '👕',
-        'Bottoms': '👖',
-        'Shoes': '👟',
-        'Accessories': '👒',
-        'Outerwear': '🧥',
-        'Dresses': '👗'
-      }
-      return icons[category] || '👕'
-    }
-
     const toggleItemSelection = (item) => {
-      const index = selectedItems.value.findIndex(selected => selected.id === item.id)
-      if (index > -1) {
-        selectedItems.value.splice(index, 1)
-      } else {
-        selectedItems.value.push({...item})
-      }
+      const index = selectedItems.value.findIndex(i => i.id === item.id)
+      index > -1 ? selectedItems.value.splice(index,1) : selectedItems.value.push({...item})
     }
 
-    const isItemSelected = (item) => {
-      return selectedItems.value.some(selected => selected.id === item.id)
-    }
+    const isItemSelected = (item) => selectedItems.value.some(i => i.id===item.id)
+    const removeFromOutfit = (item) => { selectedItems.value = selectedItems.value.filter(i => i.id!==item.id) }
+    const confirmItemSelection = () => showItemSelector.value = false
+    const takePhoto = () => alert('Camera placeholder')
+    const uploadImage = () => alert('Upload placeholder')
+    const removeImage = () => { imageUrl.value = null; imageFile.value = null }
 
-    const removeFromOutfit = (item) => {
-      selectedItems.value = selectedItems.value.filter(selected => selected.id !== item.id)
-    }
-
-    const confirmItemSelection = () => {
-      showItemSelector.value = false
-    }
-
-    const saveItem = async () => {
-      if (!isFormValid.value) return
-      
-      saving.value = true
-      try {
-        const user = auth.currentUser
-        if (!user) {
-          throw new Error('User not authenticated')
-        }
-
-        let imageDownloadURL = null
-        
-        if (imageFile.value) {
-          const fileRef = storageRef(storage, `${currentType.value.toLowerCase()}s/${user.uid}/${Date.now()}-${imageFile.value.name}`)
-          await uploadBytes(fileRef, imageFile.value)
-          imageDownloadURL = await getDownloadURL(fileRef)
-        }
-
-        const itemData = {
-          ...formData.value,
-          imageUrl: imageDownloadURL,
-          userId: user.uid,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          favorite: false
-        }
-
-        if (currentType.value === 'Outfit') {
-          itemData.items = selectedItems.value.map(item => item.id)
-          itemData.itemDetails = selectedItems.value
-        }
-
-        const collectionName = currentType.value.toLowerCase() + 's'
-        await addDoc(collection(db, collectionName), itemData)
-        
-        alert(`${currentType.value} saved successfully!`)
-        
-        if (currentType.value === 'Outfit') {
-          router.push('/app/outfits')
-        } else {
-          router.push('/app/clothing')
-        }
-        
-      } catch (error) {
-        console.error('Error saving item:', error)
-        alert('Failed to save item. Please try again.')
-      } finally {
-        saving.value = false
-      }
-    }
-
-    onMounted(() => {
-      loadAvailableItems()
-    })
+    onMounted(()=>{ loadMockData() })
 
     return {
-      currentType,
-      types,
-      imageUrl,
-      imageFile,
-      newTag,
-      newColor,
-      newEvent,
-      saving,
-      showItemSelector,
-      formData,
-      selectedItems,
-      availableItems,
-      categories,
-      seasons,
-      colors,
-      events,
-      fileInput,
-      isFormValid,
-      takePhoto,
-      uploadImage,
-      handleFileSelect,
-      removeImage,
-      addTag,
-      addColor, 
-      addEvent,
-      removeTag,
-      getCategoryIcon,
-      toggleItemSelection,
-      isItemSelected,
-      removeFromOutfit,
-      confirmItemSelection,
-      saveItem
+      currentType, formData, imageUrl, imageFile, newTag, newColor, newEvent, saving,
+      selectedItems, availableItems, showItemSelector, categories, seasons, colors, events,
+      isFormValid, takePhoto, uploadImage, removeImage,
+      addTag, removeTag, addColor, addEvent, toggleItemSelection, isItemSelected, removeFromOutfit, confirmItemSelection
     }
   }
 }

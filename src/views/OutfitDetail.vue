@@ -143,7 +143,7 @@
   </div>
 </template>
 
-<!-- <script>
+<script>
 import { useDocument } from "vuefire";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/firebase";
@@ -189,7 +189,7 @@ export default {
     },
 
     editOutfit() {
-      this.$router.push(`/app/create?edit=${this.outfit.id}`);
+      this.$router.push(`/app/outfits/${this.outfit.id}/edit`);
     },
 
     confirmDelete() {
@@ -205,100 +205,6 @@ export default {
       } catch (err) {
         console.error("Delete failed:", err);
         alert("Failed to delete outfit");
-      }
-    },
-  },
-};
-</script> -->
-
-<script>
-export default {
-  name: "OutfitDetail",
-
-  data() {
-    return {
-      loading: true,
-      outfit: null,
-    };
-  },
-
-  created() {
-    // --- MOCK DATA ---
-    setTimeout(() => {
-      this.outfit = {
-        id: "mock123",
-        title: "Cozy Winter Look",
-        description:
-          "Soft knit sweater paired with warm leggings and snow boots.",
-        favorite: true,
-        createdAt: Date.now(),
-        season: "Winter",
-        event: "Casual",
-        tags: ["warm", "cozy", "neutral"],
-        imageUrl:
-          "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=500&q=60",
-
-        itemDetails: [
-          {
-            id: "item1",
-            name: "Beige Knit Sweater",
-            category: "Tops",
-            color: "Cream",
-            imageUrl:
-              "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=60",
-          },
-          {
-            id: "item2",
-            name: "Black Winter Leggings",
-            category: "Bottoms",
-            color: "Black",
-            imageUrl:
-              "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=60",
-          },
-          {
-            id: "item3",
-            name: "Snow Boots",
-            category: "Shoes",
-            color: "Brown",
-            imageUrl:
-              "https://images.unsplash.com/photo-1528701800489-20be9fdef1f5?auto=format&fit=crop&w=400&q=60",
-          },
-        ],
-      };
-
-      this.loading = false;
-    }, 800); // simulate load
-  },
-
-  methods: {
-    getCategoryIcon(category) {
-      const icons = {
-        Tops: "👕",
-        Bottoms: "👖",
-        Shoes: "👟",
-        Accessories: "👒",
-        Outerwear: "🧥",
-        Dresses: "👗",
-      };
-      return icons[category] || "👕";
-    },
-
-    formatDate(date) {
-      return new Date(date).toLocaleDateString();
-    },
-
-    toggleFavorite() {
-      this.outfit.favorite = !this.outfit.favorite;
-    },
-
-    editOutfit() {
-      alert("Edit clicked (mock)!");
-    },
-
-    confirmDelete() {
-      if (confirm("Delete mock outfit?")) {
-        alert("Deleted!");
-        this.$router.push("/app/outfits");
       }
     },
   },

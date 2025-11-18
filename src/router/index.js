@@ -94,6 +94,18 @@ const routes = [
         meta: { 
           title: 'Outfit Details - Closet Cloud'
         }
+      },
+      {
+        path: 'clothing/:id/edit',
+        name: 'EditClothing',
+        component: () => import('@/views/EditView.vue'),
+        meta: { title: 'Edit Clothing - Closet Cloud' }
+      },
+      {
+        path: 'outfits/:id/edit',
+        name: 'EditOutfit',
+        component: () => import('@/views/EditView.vue'),
+        meta: { title: 'Edit Outfit - Closet Cloud' }
       }
     ]
   },
