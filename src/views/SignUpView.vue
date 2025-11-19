@@ -40,6 +40,18 @@
                                 />
                             </div>
 
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    class="form-control"
+                                    v-model="form.email"
+                                    required
+                                />
+                            </div>
+
                             <!-- Username -->
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
@@ -127,6 +139,7 @@ export default {
         return {
             form: {
                 name: "",
+                email: "",
                 username: "",
                 password: "",
                 confirmPassword: "",
@@ -152,8 +165,11 @@ export default {
             if (!this.form.name.trim()) {
                 this.errors.push("Name is required.");
             }
+            if (!this.form.email.trim()) {
+                this.errors.push("Email is required.");
+            }
             if (!this.form.username.trim()) {
-                this.errors.push("username is required.");
+                this.errors.push("Username is required.");
             }
             if (!this.form.password.trim()) {
                 this.errors.push("Password is required.");

@@ -61,12 +61,16 @@
                   <h5 class="card-title fw-semibold">
                     {{ item.name || item.title }}
                   </h5>
-                  <p class="text-primary mb-1">{{ item.category }}</p>
+                  <p class="text-primary mb-1">{{ getCategoryLabel(item.category) }}</p>
 
                   <!-- Tags -->
                   <div class="d-flex flex-wrap gap-2 mb-2">
-                    <span v-if="item.color" class="badge bg-light text-secondary">{{ item.color }}</span>
-                    <span v-if="item.season" class="badge bg-light text-secondary">{{ item.season }}</span>
+                    <span v-if="item.colors && item.colors.length" class="badge bg-light text-secondary">
+                      {{ item.colors[0] }}{{ item.colors.length > 1 ? ' +' + (item.colors.length - 1) : '' }}
+                    </span>
+                    <span v-if="item.seasons && item.seasons.length" class="badge bg-light text-secondary">
+                      {{ item.seasons[0] }}{{ item.seasons.length > 1 ? ' +' + (item.seasons.length - 1) : '' }}
+                    </span>
                   </div>
 
                   <p class="small text-muted fst-italic" v-if="item.brand">
@@ -83,7 +87,7 @@
             <div class="fs-1 opacity-50 mb-3">👕</div>
             <h3>No clothing items yet</h3>
             <p>Add your first clothing item to get started!</p>
-            <button class="btn btn-dark px-4" @click="$router.push('/app/create')">
+            <button class="btn btn-dark px-4" @click="$router.push('/app/create?type=Clothing')">
               Add Clothing
             </button>
           </div>
@@ -128,7 +132,7 @@
               </div>
               <div class="card-body py-2">
                 <h6 class="fw-semibold m-0">{{ item.name || item.title }}</h6>
-                <p class="text-primary small mt-1">{{ item.category }}</p>
+                <p class="text-primary small mt-1">{{ getCategoryLabel(item.category) }}</p>
               </div>
             </div>
           </div>
@@ -139,7 +143,7 @@
           <div class="fs-1 opacity-50 mb-3">👕</div>
           <h3>No clothing items yet</h3>
           <p>Add your first clothing item to get started!</p>
-          <button class="btn btn-dark px-4" @click="$router.push('/app/create')">
+          <button class="btn btn-dark px-4" @click="$router.push('/app/create?type=Clothing')">
             Add Clothing
           </button>
         </div>
@@ -152,9 +156,9 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCollection } from 'vuefire'
-import { collection, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
-import { db, auth } from '@/firebase'
+import { useCollection, useCurrentUser } from 'vuefire'
+import { collection, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/firebase'
 import FilterPanel from '@/components/FilterPanel.vue'
 
 export default {
@@ -165,12 +169,18 @@ export default {
     const isMobile = ref(false)
     const activeFilters = ref({})
 
-    const user = auth.currentUser
-    const clothingQuery = user ? query(
-      collection(db, 'clothing'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    ) : null
+    const currentUser = useCurrentUser()
+    const clothingQuery = computed(() => {
+      if (!currentUser.value) {
+        // Return a query to a non-existent collection to avoid VueFire errors
+        // This will return empty results until user is authenticated
+        return query(collection(db, '_placeholder'))
+      }
+      return query(
+        collection(db, 'users', currentUser.value.uid, 'clothingItems'),
+        orderBy('createdAt', 'desc')
+      )
+    })
 
     const clothing = useCollection(clothingQuery)
 
@@ -183,9 +193,18 @@ export default {
       return clothing.value.filter(item => {
         const { categories, seasons, colors, events } = activeFilters.value
         if (categories?.length && !categories.includes(item.category)) return false
-        if (seasons?.length && !seasons.includes(item.season)) return false
-        if (colors?.length && !colors.includes(item.color)) return false
-        if (events?.length && !events.includes(item.event)) return false
+        if (seasons?.length) {
+          const itemSeasons = Array.isArray(item.seasons) ? item.seasons : item.season ? [item.season] : []
+          if (!itemSeasons.some(s => seasons.includes(s))) return false
+        }
+        if (colors?.length) {
+          const itemColors = Array.isArray(item.colors) ? item.colors : item.color ? [item.color] : []
+          if (!itemColors.some(c => colors.includes(c))) return false
+        }
+        if (events?.length) {
+          const itemEvents = Array.isArray(item.events) ? item.events : item.event ? [item.event] : []
+          if (!itemEvents.some(e => events.includes(e))) return false
+        }
         return true
       })
     })
@@ -193,19 +212,42 @@ export default {
     const handleFilterChange = (filters) => { activeFilters.value = filters }
 
     const getCategoryIcon = (category) => {
-      const icons = { Tops:'👕', Bottoms:'👖', Shoes:'👟', Accessories:'👒', Outerwear:'🧥', Dresses:'👗' }
+      const icons = { head: '👒', top: '👕', bottom: '👖', shoe: '👟', accessory: '👒' }
       return icons[category] || '👕'
     }
 
-    const toggleFavorite = async (item) => {
-      try {
-        const itemRef = doc(db, 'clothing', item.id)
-        await updateDoc(itemRef, { favorite: !item.favorite, updatedAt: new Date() })
-      } catch (error) { console.error(error) }
+    const getCategoryLabel = (category) => {
+      const labels = {
+        head: 'Headwear',
+        top: 'Top',
+        bottom: 'Bottom',
+        shoe: 'Shoes',
+        accessory: 'Accessory'
+      }
+      return labels[category] || category
     }
 
-    const navigateToItem = (itemId) => { router.push(`/app/clothing/${itemId}`) }
-    const navigateToCreate = () => { router.push('/app/create') }
+    const toggleFavorite = async (item) => {
+      if (!currentUser.value) return
+      try {
+        const itemRef = doc(db, 'users', currentUser.value.uid, 'clothingItems', item.id)
+        await updateDoc(itemRef, { 
+          favorite: !item.favorite, 
+          updatedAt: serverTimestamp() 
+        })
+      } catch (error) { 
+        console.error('Error toggling favorite:', error)
+        alert('Failed to update favorite. Please try again.')
+      }
+    }
+
+    const navigateToItem = (itemId) => { 
+      router.push(`/app/clothing/${itemId}`) 
+    }
+
+    const navigateToCreate = () => { 
+      router.push('/app/create?type=Clothing') 
+    }
 
     return {
       isMobile,
@@ -213,6 +255,7 @@ export default {
       filteredClothing,
       handleFilterChange,
       getCategoryIcon,
+      getCategoryLabel,
       toggleFavorite,
       navigateToItem,
       navigateToCreate
@@ -222,9 +265,17 @@ export default {
 </script>
 
 <style scoped>
+.clothing-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
 .clothing-card:hover {
   transform: translateY(-4px);
-  transition: 0.3s ease;
-  cursor: pointer;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.bg-gradient {
+  background-size: cover;
 }
 </style>

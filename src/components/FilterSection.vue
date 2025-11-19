@@ -22,7 +22,7 @@
           @change="handleCheckboxChange(option, $event.target.checked)"
         />
         <label class="form-check-label" :for="optionId(option)">
-          {{ option }}
+          {{ getDisplayLabel(option) }}
         </label>
       </div>
     </div>
@@ -59,6 +59,17 @@ export default {
 
     const optionId = (option) => `filter-${option.replace(/\s+/g, '-')}`
 
+    const getDisplayLabel = (option) => {
+      const categoryLabels = {
+        'head': 'Headwear',
+        'top': 'Top',
+        'bottom': 'Bottom',
+        'shoe': 'Shoes',
+        'accessory': 'Accessory'
+      }
+      return categoryLabels[option] || option
+    }
+
     watch(() => props.selectedValues, (newValues) => {
       localSelected.value = [...newValues]
     })
@@ -67,7 +78,8 @@ export default {
       isExpanded,
       toggleExpanded,
       handleCheckboxChange,
-      optionId
+      optionId,
+      getDisplayLabel
     }
   }
 }

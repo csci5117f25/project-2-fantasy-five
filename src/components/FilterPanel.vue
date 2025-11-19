@@ -26,7 +26,7 @@
       </div>
       <div>
         <FilterSection
-          v-for="section in filterSections"
+          v-for="section in visibleFilterSections"
           :key="section.key"
           :title="section.title"
           :options="section.options"
@@ -53,7 +53,7 @@
         </div>
         <div class="offcanvas-body overflow-auto p-4">
           <FilterSection
-            v-for="section in filterSections"
+            v-for="section in visibleFilterSections"
             :key="section.key"
             :title="section.title"
             :options="section.options"
@@ -81,6 +81,9 @@ import FilterSection from './FilterSection.vue'
 export default {
   name: 'FilterPanel',
   components: { FilterSection },
+  props: {
+    hideCategories: { type: Boolean, default: false }
+  },
   emits: ['filter-change'],
   setup(props, { emit }) {
     const isMobile = ref(false)
@@ -94,11 +97,18 @@ export default {
     })
 
     const filterSections = [
-      { key: 'categories', title: 'Item Category', options: ['Tops', 'Bottoms', 'Shoes', 'Accessories', 'Outerwear', 'Dresses'] },
+      { key: 'categories', title: 'Item Category', options: ['head', 'top', 'bottom', 'shoe', 'accessory'] },
       { key: 'seasons', title: 'Season', options: ['Spring', 'Summer', 'Fall', 'Winter', 'All Season'] },
       { key: 'colors', title: 'Color', options: ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi'] },
       { key: 'events', title: 'Event', options: ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel'] }
     ]
+
+    const visibleFilterSections = computed(() => {
+      if (props.hideCategories) {
+        return filterSections.filter(section => section.key !== 'categories')
+      }
+      return filterSections
+    })
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -133,6 +143,7 @@ export default {
       showMobileFilters,
       filters,
       filterSections,
+      visibleFilterSections,
       activeFilterCount,
       updateFilters,
       clearAllFilters,

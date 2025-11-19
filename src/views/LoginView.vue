@@ -28,14 +28,14 @@
                                 </ul>
                             </div>
 
-                            <!-- Username -->
+                            <!-- Email -->
                             <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
+                                <label for="email" class="form-label">Email</label>
                                 <input
-                                    id="username"
-                                    type="text"
+                                    id="email"
+                                    type="email"
                                     class="form-control"
-                                    v-model="form.username"
+                                    v-model="form.email"
                                     required
                                 />
                             </div>
@@ -53,8 +53,19 @@
                             </div>
 
                             <!-- Log In button -->
-                            <button type="submit" class="btn btn-primary w-100">
-                                Log In
+                            <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+                                {{ loading ? 'Signing in...' : 'Log In' }}
+                            </button>
+
+                            <!-- Divider -->
+                            <div class="my-3 text-center">
+                                <span class="text-muted">or</span>
+                            </div>
+
+                            <!-- Google Sign In button -->
+                            <button type="button" class="btn btn-outline-secondary w-100" @click="handleGoogleSignIn" :disabled="loading">
+                                <i class="fab fa-google me-2"></i>
+                                Continue with Google
                             </button>
 
                             <!-- Sign up link -->
@@ -80,6 +91,9 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '@/firebase'
 
 export default {
     name: 'LoginView',
@@ -87,17 +101,19 @@ export default {
         const router = useRouter()
 
         const form = ref({
-            username: '',
+            email: '',
             password: ''
         })
 
         const errors = ref([])
+        const loading = ref(false)
 
         const handleSubmit = async () => {
             errors.value = []
+            loading.value = true
 
-            if (!form.value.username.trim()) {
-                errors.value.push('Username is required.')
+            if (!form.value.email.trim()) {
+                errors.value.push('Email is required.')
             }
 
             if (!form.value.password) {
@@ -105,19 +121,71 @@ export default {
             }
 
             if (errors.value.length > 0) {
+                loading.value = false
                 return
             }
 
-            // to be sent to server
-            const payload = {
-                username: form.value.username,
-                password: form.value.password
+            try {
+                await signInWithEmailAndPassword(auth, form.value.email.trim(), form.value.password)
+                await router.push('/app/outfits')
+                form.value.email = ''
+                form.value.password = ''
+            } catch (error) {
+                console.error('Login error:', error)
+                if (error.code === 'auth/user-not-found') errors.value.push('No account found with this email.')
+                else if (error.code === 'auth/wrong-password') errors.value.push('Incorrect password.')
+                else if (error.code === 'auth/invalid-email') errors.value.push('Invalid email address.')
+                else if (error.code === 'auth/too-many-requests') errors.value.push('Too many failed attempts. Please try again later.')
+                else errors.value.push('Failed to sign in. Please try again.')
+            } finally {
+                loading.value = false
             }
+        }
 
-            alert("all inputs valid; ready to log in")
+        const handleGoogleSignIn = async () => {
+            errors.value = []
+            loading.value = true
+            try {
+                const provider = new GoogleAuthProvider()
+                const result = await signInWithPopup(auth, provider)
+                const user = result.user
 
-            form.value.username = ''
-            form.value.password = ''
+                // Check if user document exists, create if not
+                const userDocRef = doc(db, 'users', user.uid)
+                const userDoc = await getDoc(userDocRef)
+                
+                if (!userDoc.exists()) {
+                    // Create user document for new Google sign-in
+                    await setDoc(userDocRef, {
+                        userSettings: {
+                            name: user.displayName || '',
+                            username: user.email?.split('@')[0] || '',
+                            theme: 'system',
+                            profilePictureUrl: user.photoURL || null
+                        },
+                        userStats: {
+                            clothingCount: 0,
+                            outfitCount: 0
+                        },
+                        userMeasurements: {},
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    })
+                }
+
+                await router.push('/app/outfits')
+            } catch (error) {
+                console.error('Google sign-in error:', error)
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errors.value.push('Sign-in popup was closed.')
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    // User cancelled, no error needed
+                } else {
+                    errors.value.push('Failed to sign in with Google. Please try again.')
+                }
+            } finally {
+                loading.value = false
+            }
         }
 
         const goToSignUp = () => {
@@ -127,7 +195,9 @@ export default {
         return {
             form,
             errors,
+            loading,
             handleSubmit,
+            handleGoogleSignIn,
             goToSignUp
         }
     }
