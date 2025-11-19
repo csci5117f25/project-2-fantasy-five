@@ -88,6 +88,14 @@ const routes = [
         }
       },
       {
+        path: 'clothing/:id/edit',
+        name: 'EditClothing',
+        component: () => import('@/views/EditClothingView.vue'),
+        meta: { 
+          title: 'Edit Clothing - Closet Cloud'
+        }
+      },
+      {
         path: 'outfits/:id',
         name: 'OutfitDetail',
         component: () => import('@/views/OutfitDetail.vue'),
@@ -96,16 +104,12 @@ const routes = [
         }
       },
       {
-        path: 'clothing/:id/edit',
-        name: 'EditClothing',
-        component: () => import('@/views/EditView.vue'),
-        meta: { title: 'Edit Clothing - Closet Cloud' }
-      },
-      {
         path: 'outfits/:id/edit',
         name: 'EditOutfit',
-        component: () => import('@/views/EditView.vue'),
-        meta: { title: 'Edit Outfit - Closet Cloud' }
+        component: () => import('@/views/EditOutfitView.vue'),
+        meta: { 
+          title: 'Edit Outfit - Closet Cloud'
+        }
       }
     ]
   },
