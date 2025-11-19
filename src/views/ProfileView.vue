@@ -1,6 +1,12 @@
 <template>
   <div class="container py-5">
-    <div class="row justify-content-center">
+    <div v-if="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading profile...</p>
+    </div>
+    <div v-else class="row justify-content-center">
       <div class="col-lg-8">
 
         <div class="row">
@@ -10,20 +16,24 @@
               <div class="card-body">
 
                 <!-- Profile Picture -->
-                <div class="position-relative mb-3">
-                  <img 
-                    :src="userProfile.profilePic || defaultProfilePic" 
-                    alt="Profile Picture"
-                    class="rounded-circle img-fluid profile-pic"
-                    @error="handleImageError"
-                  >
-                  <button 
-                    class="btn btn-outline-primary btn-sm position-absolute bottom-0 end-0 rounded-circle"
-                    style="width:36px; height:36px;"
-                    @click="triggerFileInput"
-                  >
-                    <i class="fas fa-camera"></i>
-                  </button>
+                <div class="mb-3">
+                  <div class="mb-2">
+                    <button class="btn btn-outline-secondary btn-sm me-2" @click="takePhoto">📸 Take Photo</button>
+                    <button class="btn btn-outline-secondary btn-sm" @click="triggerFileInput">📁 Upload Image</button>
+                  </div>
+                  <div class="position-relative d-inline-block">
+                    <img 
+                      :src="userProfile.profilePic || defaultProfilePic" 
+                      alt="Profile Picture"
+                      class="rounded-circle img-fluid profile-pic"
+                      @error="handleImageError"
+                    >
+                    <button 
+                      v-if="userProfile.profilePic"
+                      @click="removeProfilePic"
+                      class="btn-close position-absolute top-0 end-0"
+                    ></button>
+                  </div>
                   <input 
                     ref="fileInput"
                     type="file" 
@@ -71,30 +81,93 @@
               <div class="card-body">
 
                 <div class="row mb-3">
-                  <div class="col-sm-4 mb-2">
-                    <label class="form-label fw-bold">Shirt Size</label>
-                    <select class="form-select" v-model="userProfile.shirtSize" @change="saveProfile">
+                  <!-- Head Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Head Size</label>
+                    <select class="form-select" v-model="userProfile.headSize" @change="saveProfile">
                       <option value="">Select Size</option>
-                      <option>XS</option>
-                      <option>S</option>
-                      <option>M</option>
-                      <option>L</option>
-                      <option>XL</option>
-                      <option>XXL</option>
+                      <option v-for="size in headSizes" :key="size" :value="size">{{ size }}</option>
                     </select>
                   </div>
-                  <div class="col-sm-4 mb-2">
-                    <label class="form-label fw-bold">Shoes</label>
+                  
+                  <!-- Top Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Top Size</label>
+                    <select class="form-select" v-model="userProfile.topSize" @change="saveProfile">
+                      <option value="">Select Size</option>
+                      <option v-for="size in topSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Bottom Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Bottom Size</label>
+                    <select class="form-select" v-model="userProfile.bottomSize" @change="saveProfile">
+                      <option value="">Select Size</option>
+                      <option v-for="size in bottomSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Shoe Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Shoe Size</label>
                     <select class="form-select" v-model="userProfile.shoeSize" @change="saveProfile">
                       <option value="">Select Size</option>
                       <option v-for="size in shoeSizes" :key="size" :value="size">{{ size }}</option>
                     </select>
                   </div>
-                  <div class="col-sm-4 mb-2">
-                    <label class="form-label fw-bold">Pants</label>
-                    <select class="form-select" v-model="userProfile.pantsSize" @change="saveProfile">
+                  
+                  <!-- Dress Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Dress Size</label>
+                    <select class="form-select" v-model="userProfile.dressSize" @change="saveProfile">
                       <option value="">Select Size</option>
-                      <option v-for="size in pantsSizes" :key="size" :value="size">{{ size }}</option>
+                      <option v-for="size in dressSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Jacket Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Jacket/Outerwear Size</label>
+                    <select class="form-select" v-model="userProfile.jacketSize" @change="saveProfile">
+                      <option value="">Select Size</option>
+                      <option v-for="size in jacketSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Ring Size -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Ring Size</label>
+                    <select class="form-select" v-model="userProfile.ringSize" @change="saveProfile">
+                      <option value="">Select Size</option>
+                      <option v-for="size in ringSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Waist Measurement -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Waist Measurement (inches)</label>
+                    <select class="form-select" v-model="userProfile.waistMeasurement" @change="saveProfile">
+                      <option value="">Select Measurement</option>
+                      <option v-for="size in waistMeasurements" :key="size" :value="size">{{ size }}"</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Chest Measurement -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Chest Measurement (inches)</label>
+                    <select class="form-select" v-model="userProfile.chestMeasurement" @change="saveProfile">
+                      <option value="">Select Measurement</option>
+                      <option v-for="size in chestMeasurements" :key="size" :value="size">{{ size }}"</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Inseam Measurement -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Inseam Measurement (inches)</label>
+                    <select class="form-select" v-model="userProfile.inseamMeasurement" @change="saveProfile">
+                      <option value="">Select Measurement</option>
+                      <option v-for="size in inseamMeasurements" :key="size" :value="size">{{ size }}"</option>
                     </select>
                   </div>
                 </div>
@@ -177,159 +250,417 @@
 </template>
 
 <script>
+import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { signOut, deleteUser } from 'firebase/auth';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { db, storage, auth } from '../firebase.js';
 
 export default {
   name: 'ProfileView',
-  data() {
-    return {
-      userProfile: {
-        name: '',
-        username: '',
-        bio: '',
-        profilePic: '',
-        shirtSize: '',
-        shoeSize: '',
-        pantsSize: ''
-      },
-      userSettings: {
-        theme: 'auto',
-        notifications: true,
-        emailUpdates: true
-      },
-      stats: {
-        clothesCount: 0,
-        outfitsCount: 0
-      },
-      showDeleteConfirm: false,
-      deleteConfirmation: '',
-      defaultProfilePic: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RlZTZmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE4IiBmaWxsPSIjOWM5YzljIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIFBob3RvPC90ZXh0Pjwvc3ZnPg==',
-      shoeSizes: [],
-      pantsSizes: []
-    };
-  },
-  async mounted() {
-    await this.loadUserProfile();
-    await this.loadUserStats();
-    await this.loadUserSettings();
-    this.generateSizeOptions();
-    this.applyTheme();
-  },
-  methods: {
-    async loadUserProfile() {
-      if (!auth.currentUser) return;
+  setup() {
+    const router = useRouter()
+    const currentUser = useCurrentUser()
+    const loading = ref(true)
+    
+    const userProfile = ref({
+      name: '',
+      username: '',
+      bio: '',
+      profilePic: '',
+      headSize: '',
+      topSize: '',
+      bottomSize: '',
+      shoeSize: '',
+      dressSize: '',
+      jacketSize: '',
+      ringSize: '',
+      waistMeasurement: '',
+      chestMeasurement: '',
+      inseamMeasurement: ''
+    })
+    
+    const userSettings = ref({
+      theme: 'auto',
+      notifications: true,
+      emailUpdates: true
+    })
+    
+    const stats = ref({
+      clothesCount: 0,
+      outfitsCount: 0
+    })
+    
+    const showDeleteConfirm = ref(false)
+    const deleteConfirmation = ref('')
+    const defaultProfilePic = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RlZTZmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE4IiBmaWxsPSIjOWM5YzljIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIFBob3RvPC90ZXh0Pjwvc3ZnPg=='
+    
+    const headSizes = ref([])
+    const topSizes = ref([])
+    const bottomSizes = ref([])
+    const shoeSizes = ref([])
+    const dressSizes = ref([])
+    const jacketSizes = ref([])
+    const ringSizes = ref([])
+    const waistMeasurements = ref([])
+    const chestMeasurements = ref([])
+    const inseamMeasurements = ref([])
+    const fileInput = ref(null)
+
+    const loadUserProfile = async () => {
+      if (!currentUser.value) return;
       try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        const userDoc = await getDoc(doc(db, 'users', currentUser.value.uid));
         if (userDoc.exists()) {
-          this.userProfile = { ...userDoc.data() };
-        } else {
-          this.userProfile = {
-            name: auth.currentUser.displayName || '',
-            username: auth.currentUser.email?.split('@')[0] || '',
-            bio: '',
-            profilePic: '',
-            shirtSize: '',
-            shoeSize: '',
-            pantsSize: ''
-          };
-          await this.saveProfile();
+          const data = userDoc.data();
+          userProfile.value.name = data.userSettings?.name || '';
+          userProfile.value.username = data.userSettings?.username || '';
+          userProfile.value.bio = data.userSettings?.bio || '';
+          userProfile.value.profilePic = data.userSettings?.profilePictureUrl || '';
+          userProfile.value.headSize = data.userMeasurements?.head || '';
+          userProfile.value.topSize = data.userMeasurements?.top || '';
+          userProfile.value.bottomSize = data.userMeasurements?.bottom || '';
+          userProfile.value.shoeSize = data.userMeasurements?.shoe || '';
+          userProfile.value.dressSize = data.userMeasurements?.dress || '';
+          userProfile.value.jacketSize = data.userMeasurements?.jacket || '';
+          userProfile.value.ringSize = data.userMeasurements?.ring || '';
+          userProfile.value.waistMeasurement = data.userMeasurements?.waist || '';
+          userProfile.value.chestMeasurement = data.userMeasurements?.chest || '';
+          userProfile.value.inseamMeasurement = data.userMeasurements?.inseam || '';
         }
       } catch (error) {
         console.error(error);
       }
-    },
-    async loadUserStats() {
-      if (!auth.currentUser) return;
+    }
+    
+    const loadUserStats = async () => {
+      if (!currentUser.value) return;
       try {
-        const clothingSnapshot = await getDocs(query(collection(db, 'clothing'), where('userId', '==', auth.currentUser.uid)));
-        this.stats.clothesCount = clothingSnapshot.size;
-        const outfitsSnapshot = await getDocs(query(collection(db, 'outfits'), where('userId', '==', auth.currentUser.uid)));
-        this.stats.outfitsCount = outfitsSnapshot.size;
+        const clothingSnapshot = await getDocs(collection(db, 'users', currentUser.value.uid, 'clothingItems'));
+        stats.value.clothesCount = clothingSnapshot.size;
+        const outfitsSnapshot = await getDocs(collection(db, 'users', currentUser.value.uid, 'outfits'));
+        stats.value.outfitsCount = outfitsSnapshot.size;
       } catch (error) {
         console.error(error);
       }
-    },
-    async loadUserSettings() {
-      if (!auth.currentUser) return;
+    }
+    
+    const loadUserSettings = async () => {
+      if (!currentUser.value) return;
       try {
-        const settingsDoc = await getDoc(doc(db, 'userSettings', auth.currentUser.uid));
-        if (settingsDoc.exists()) this.userSettings = { ...settingsDoc.data() };
+        const userDoc = await getDoc(doc(db, 'users', currentUser.value.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          userSettings.value.theme = data.userSettings?.theme || 'auto';
+        }
       } catch (error) {
         console.error(error);
       }
-    },
-    generateSizeOptions() {
-      this.shoeSizes = Array.from({length: 17}, (_, i) => (5 + i*0.5).toString());
-      this.pantsSizes = Array.from({length: 8}, (_, i) => (28 + i*2).toString());
-    },
-    async saveProfile() {
-      if (!auth.currentUser) return;
+    }
+    
+    const generateSizeOptions = () => {
+      headSizes.value = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      topSizes.value = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      const waistSizes = Array.from({length: 20}, (_, i) => (26 + i*2).toString());
+      const inseamSizes = ['28', '30', '32', '34', '36', '38'];
+      bottomSizes.value = [...waistSizes];
+      inseamSizes.forEach(inseam => {
+        waistSizes.forEach(waist => {
+          bottomSizes.value.push(`${waist}x${inseam}`);
+        });
+      });
+      shoeSizes.value = Array.from({length: 21}, (_, i) => (4 + i*0.5).toFixed(1));
+      dressSizes.value = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      jacketSizes.value = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      ringSizes.value = Array.from({length: 19}, (_, i) => (4 + i*0.5).toFixed(1));
+      waistMeasurements.value = Array.from({length: 14}, (_, i) => (24 + i*2).toString());
+      chestMeasurements.value = Array.from({length: 13}, (_, i) => (32 + i*2).toString());
+      inseamMeasurements.value = Array.from({length: 7}, (_, i) => (26 + i*2).toString());
+    }
+    
+    const applyTheme = () => {
+      const theme = userSettings.value.theme;
+      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.setAttribute('data-bs-theme', 'dark');
+      } else {
+        document.body.setAttribute('data-bs-theme', 'light');
+      }
+    }
+    
+    // Load data when user is authenticated
+    const loadData = async () => {
+      if (currentUser.value) {
+        loading.value = true
+        await loadUserProfile();
+        await loadUserStats();
+        await loadUserSettings();
+        generateSizeOptions();
+        applyTheme();
+        loading.value = false
+      }
+    }
+    
+    // Watch for user authentication changes
+    watch(currentUser, async (user) => {
+      if (user) {
+        await loadData()
+      }
+      // Don't redirect immediately - let onMounted handle initial check
+    })
+    
+    onMounted(async () => {
+      generateSizeOptions()
+      // Wait a moment for auth to initialize
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Check if user is authenticated
+      if (currentUser.value) {
+        await loadData()
+      } else {
+        // Check auth state directly as fallback
+        await new Promise(resolve => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe()
+            resolve()
+            if (user) {
+              loadData()
+            } else {
+              router.push('/login')
+            }
+          })
+        })
+      }
+    })
+
+    const saveProfile = async () => {
+      if (!currentUser.value) return;
       try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid), { ...this.userProfile, updatedAt: new Date() });
-      } catch (error) { console.error(error); }
-    },
-    saveName(event) {
-      this.userProfile.name = event.target.innerText.trim();
-      this.saveProfile();
-    },
-    saveUsername(event) {
-      this.userProfile.username = event.target.innerText.trim().replace(/\s+/g,'');
-      this.saveProfile();
-    },
-    async saveSettings() {
-      if (!auth.currentUser) return;
+        const userDocRef = doc(db, 'users', currentUser.value.uid);
+        const userDoc = await getDoc(userDocRef);
+        const existingData = userDoc.exists() ? userDoc.data() : {};
+        
+        const userMeasurements = existingData.userMeasurements || {};
+        if (userProfile.value.headSize) userMeasurements.head = userProfile.value.headSize;
+        else delete userMeasurements.head;
+        if (userProfile.value.topSize) userMeasurements.top = userProfile.value.topSize;
+        else delete userMeasurements.top;
+        if (userProfile.value.bottomSize) userMeasurements.bottom = userProfile.value.bottomSize;
+        else delete userMeasurements.bottom;
+        if (userProfile.value.shoeSize) userMeasurements.shoe = userProfile.value.shoeSize;
+        else delete userMeasurements.shoe;
+        if (userProfile.value.dressSize) userMeasurements.dress = userProfile.value.dressSize;
+        else delete userMeasurements.dress;
+        if (userProfile.value.jacketSize) userMeasurements.jacket = userProfile.value.jacketSize;
+        else delete userMeasurements.jacket;
+        if (userProfile.value.ringSize) userMeasurements.ring = userProfile.value.ringSize;
+        else delete userMeasurements.ring;
+        if (userProfile.value.waistMeasurement) userMeasurements.waist = userProfile.value.waistMeasurement;
+        else delete userMeasurements.waist;
+        if (userProfile.value.chestMeasurement) userMeasurements.chest = userProfile.value.chestMeasurement;
+        else delete userMeasurements.chest;
+        if (userProfile.value.inseamMeasurement) userMeasurements.inseam = userProfile.value.inseamMeasurement;
+        else delete userMeasurements.inseam;
+        
+        await setDoc(userDocRef, {
+          userSettings: {
+            name: userProfile.value.name || '',
+            username: userProfile.value.username || '',
+            theme: userSettings.value.theme || 'system',
+            profilePictureUrl: userProfile.value.profilePic || null,
+            bio: userProfile.value.bio || ''
+          },
+          userStats: existingData.userStats || { clothingCount: 0, outfitCount: 0 },
+          userMeasurements: userMeasurements,
+          createdAt: existingData.createdAt || new Date(),
+          updatedAt: new Date()
+        }, { merge: true });
+      } catch (error) { 
+        console.error('Save profile error:', error); 
+      }
+    }
+    
+    const saveName = (event) => {
+      userProfile.value.name = event.target.innerText.trim();
+      saveProfile();
+    }
+    
+    const saveUsername = (event) => {
+      userProfile.value.username = event.target.innerText.trim().replace(/\s+/g,'');
+      saveProfile();
+    }
+    
+    const saveSettings = async () => {
+      if (!currentUser.value) return;
       try {
-        await setDoc(doc(db, 'userSettings', auth.currentUser.uid), { ...this.userSettings, updatedAt: new Date() });
-      } catch (error) { console.error(error); }
-    },
-    applyTheme() {
-      const theme = this.userSettings.theme;
-      if (theme==='dark'||(theme==='auto' && window.matchMedia('(prefers-color-scheme: dark)').matches))
-        document.body.setAttribute('data-bs-theme','dark');
-      else
-        document.body.setAttribute('data-bs-theme','light');
-      this.saveSettings();
-    },
-    triggerFileInput() { this.$refs.fileInput.click(); },
-    async handleProfilePicChange(event) {
-      const file = event.target.files[0]; if (!file) return;
+        const userDocRef = doc(db, 'users', currentUser.value.uid);
+        await setDoc(userDocRef, {
+          userSettings: {
+            theme: userSettings.value.theme || 'system'
+          },
+          updatedAt: new Date()
+        }, { merge: true });
+      } catch (error) { 
+        console.error('Save settings error:', error); 
+      }
+    }
+    
+    const triggerFileInput = () => { 
+      fileInput.value?.click(); 
+    }
+    const takePhoto = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        triggerFileInput()
+        return
+      }
       try {
-        const storageRef = ref(storage, `profilePictures/${auth.currentUser.uid}/${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        this.userProfile.profilePic = downloadURL;
-        await this.saveProfile();
-        event.target.value = '';
-      } catch (error) { console.error(error); alert('Error uploading profile picture'); }
-    },
-    handleImageError(event) { event.target.src = this.defaultProfilePic; },
-    async logout() { try { await signOut(auth); this.$router.push('/'); } catch(e){console.error(e);} },
-    async deleteAccount() { 
-      if(this.deleteConfirmation!=='DELETE') return;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        const modal = document.createElement('div')
+        modal.className = 'modal d-block'
+        modal.style.backgroundColor = 'rgba(0,0,0,0.8)'
+        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Take Photo</h5><button type="button" class="btn-close" id="closeCamera"></button></div><div class="modal-body text-center"><video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px; border-radius: 50%;"></video></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelCamera">Cancel</button><button class="btn btn-primary" id="capturePhoto">Capture</button></div></div></div>'
+        document.body.appendChild(modal)
+        const preview = modal.querySelector('#cameraPreview')
+        preview.srcObject = stream
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const closeCamera = () => {
+          stream.getTracks().forEach(track => track.stop())
+          document.body.removeChild(modal)
+        }
+        modal.querySelector('#closeCamera').onclick = closeCamera
+        modal.querySelector('#cancelCamera').onclick = closeCamera
+        modal.querySelector('#capturePhoto').onclick = () => {
+          canvas.width = preview.videoWidth
+          canvas.height = preview.videoHeight
+          ctx.drawImage(preview, 0, 0)
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], `profile-${Date.now()}.jpg`, { type: 'image/jpeg' })
+              const input = fileInput.value
+              const dataTransfer = new DataTransfer()
+              dataTransfer.items.add(file)
+              input.files = dataTransfer.files
+              input.dispatchEvent(new Event('change', { bubbles: true }))
+            }
+            closeCamera()
+          }, 'image/jpeg', 0.9)
+        }
+      } catch (error) {
+        console.error('Camera error:', error)
+        triggerFileInput()
+      }
+    }
+    
+    const removeProfilePic = () => {
+      userProfile.value.profilePic = ''
+      saveProfile()
+    }
+    
+    const handleProfilePicChange = async (event) => {
+      const file = event.target.files[0]
+      if (!file || !currentUser.value) return
       try {
-        const user = auth.currentUser;
-        if(!user){ alert('No user logged in'); return; }
-        await this.deleteUserData(user.uid);
-        await deleteUser(user);
-        this.$router.push('/');
-      } catch (error) { console.error(error); if(error.code==='auth/requires-recent-login'){ alert('Please log in again'); await this.logout(); } else { alert('Error deleting account.'); } }
-    },
-    async deleteUserData(userId){
-      try{
-        await deleteDoc(doc(db,'users',userId));
-        await deleteDoc(doc(db,'userSettings',userId));
-        const clothingSnapshot = await getDocs(query(collection(db,'clothing'), where('userId','==',userId)));
-        await Promise.all(clothingSnapshot.docs.map(doc=>deleteDoc(doc.ref)));
-        const outfitsSnapshot = await getDocs(query(collection(db,'outfits'), where('userId','==',userId)));
-        await Promise.all(outfitsSnapshot.docs.map(doc=>deleteDoc(doc.ref)));
-        try{ await deleteObject(ref(storage, `profilePictures/${userId}`)); }catch(e){console.log('No profile pic to delete');}
-      }catch(e){console.error(e); throw e;}
+        const fileRef = storageRef(storage, `users/${currentUser.value.uid}/profilePictures/${file.name}`)
+        const snapshot = await uploadBytes(fileRef, file)
+        const downloadURL = await getDownloadURL(snapshot.ref)
+        userProfile.value.profilePic = downloadURL
+        await saveProfile()
+        event.target.value = ''
+      } catch (error) { 
+        console.error('Error uploading profile picture:', error)
+        alert('Error uploading profile picture') 
+      }
+    }
+    
+    const handleImageError = (event) => { 
+      event.target.src = defaultProfilePic 
+    }
+    
+    const logout = async () => { 
+      try { 
+        await signOut(auth)
+        router.push('/') 
+      } catch(e) {
+        console.error('Logout error:', e)
+      } 
+    }
+    
+    const deleteAccount = async () => { 
+      if(deleteConfirmation.value !== 'DELETE') return
+      try {
+        const user = currentUser.value
+        if(!user) { 
+          alert('No user logged in')
+          return 
+        }
+        await deleteUserData(user.uid)
+        await deleteUser(user)
+        router.push('/')
+      } catch (error) { 
+        console.error('Delete account error:', error)
+        if(error.code === 'auth/requires-recent-login') { 
+          alert('Please log in again')
+          await logout()
+        } else { 
+          alert('Error deleting account.') 
+        } 
+      }
+    }
+    
+    const deleteUserData = async (userId) => {
+      try {
+        await deleteDoc(doc(db, 'users', userId))
+        const clothingSnapshot = await getDocs(collection(db, 'users', userId, 'clothingItems'))
+        await Promise.all(clothingSnapshot.docs.map(doc => deleteDoc(doc.ref)))
+        const outfitsSnapshot = await getDocs(collection(db, 'users', userId, 'outfits'))
+        await Promise.all(outfitsSnapshot.docs.map(doc => deleteDoc(doc.ref)))
+        try { 
+          await deleteObject(storageRef(storage, `users/${userId}/profilePictures`))
+        } catch(e) {
+          console.log('No profile pic to delete')
+        }
+      } catch(e) {
+        console.error('Delete user data error:', e)
+        throw e
+      }
+    }
+    
+    return {
+      loading,
+      userProfile,
+      userSettings,
+      stats,
+      showDeleteConfirm,
+      deleteConfirmation,
+      defaultProfilePic,
+      headSizes,
+      topSizes,
+      bottomSizes,
+      shoeSizes,
+      dressSizes,
+      jacketSizes,
+      ringSizes,
+      waistMeasurements,
+      chestMeasurements,
+      inseamMeasurements,
+      fileInput,
+      saveProfile,
+      saveName,
+      saveUsername,
+      saveSettings,
+      applyTheme,
+      triggerFileInput,
+      takePhoto,
+      removeProfilePic,
+      handleProfilePicChange,
+      handleImageError,
+      logout,
+      deleteAccount
     }
   }
-};
+}
 </script>
 
 <style scoped>

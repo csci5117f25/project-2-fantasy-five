@@ -42,7 +42,11 @@
     </main>
 
     <!-- Floating Action Button -->
-    <button class="fab btn btn-dark rounded-circle" @click="$router.push('/app/create')">
+    <button 
+      v-if="showFab" 
+      class="fab btn btn-dark rounded-circle" 
+      @click="handleFabClick"
+    >
       +
     </button>
 
@@ -51,7 +55,27 @@
 
 <script>
 export default {
-  name: 'MainLayout'
+  name: 'MainLayout',
+  computed: {
+    showFab() {
+      const routeName = this.$route.name
+      // Only show FAB on Outfits and Clothing views
+      return routeName === 'Outfits' || routeName === 'Clothing'
+    }
+  },
+  methods: {
+    handleFabClick() {
+      const currentRoute = this.$route.name
+      if (currentRoute === 'Outfits') {
+        this.$router.push('/app/create?type=Outfit')
+      } else if (currentRoute === 'Clothing') {
+        this.$router.push('/app/create?type=Clothing')
+      } else {
+        // Default to Clothing if on other pages
+        this.$router.push('/app/create?type=Clothing')
+      }
+    }
+  }
 }
 </script>
 

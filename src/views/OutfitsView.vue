@@ -8,7 +8,7 @@
         <!-- Sidebar -->
         <div class="col-lg-3">
           <div class="sticky-top" style="top: 1rem">
-            <FilterPanel @filter-change="handleFilterChange" />
+            <FilterPanel @filter-change="handleFilterChange" :hide-categories="true" />
           </div>
         </div>
 
@@ -59,9 +59,8 @@
                 <!-- Card body -->
                 <div class="card-body">
                   <h5 class="card-title fw-semibold">
-                    {{ outfit.title || 'Untitled Outfit' }}
+                    {{ outfit.name || outfit.title || 'Untitled Outfit' }}
                   </h5>
-                  <p class="text-primary mb-1">{{ outfit.category }}</p>
 
                   <p class="text-muted small">
                     {{ truncateDescription(outfit.description) }}
@@ -69,12 +68,16 @@
 
                   <!-- Tags -->
                   <div class="d-flex flex-wrap gap-2 mb-2">
-                    <span v-if="outfit.season" class="badge bg-light text-secondary">{{ outfit.season }}</span>
-                    <span v-if="outfit.event" class="badge bg-light text-secondary">{{ outfit.event }}</span>
+                    <span v-if="outfit.seasons && outfit.seasons.length" class="badge bg-light text-secondary">
+                      {{ outfit.seasons[0] }}{{ outfit.seasons.length > 1 ? ' +' + (outfit.seasons.length - 1) : '' }}
+                    </span>
+                    <span v-if="outfit.events && outfit.events.length" class="badge bg-light text-secondary">
+                      {{ outfit.events[0] }}{{ outfit.events.length > 1 ? ' +' + (outfit.events.length - 1) : '' }}
+                    </span>
                   </div>
 
-                  <p class="small text-muted fst-italic" v-if="outfit.items">
-                    {{ outfit.items.length }} items
+                  <p class="small text-muted fst-italic" v-if="outfit.clothingItemIds">
+                    {{ outfit.clothingItemIds.length }} items
                   </p>
                 </div>
 
@@ -86,10 +89,7 @@
           <div v-else class="text-center py-5">
             <div class="fs-1 opacity-50 mb-3">👕</div>
             <h3>No outfits yet</h3>
-            <p>Create your first outfit to get started!</p>
-            <button class="btn btn-dark px-4" @click="$router.push('/app/create')">
-              Create Outfit
-            </button>
+            <p>Use the + button to create your first outfit!</p>
           </div>
 
         </div>
@@ -106,7 +106,7 @@
           </p>
         </div>
 
-        <FilterPanel @filter-change="handleFilterChange" />
+        <FilterPanel @filter-change="handleFilterChange" :hide-categories="true" />
 
         <!-- Grid -->
         <div v-if="filteredOutfits?.length" class="row g-3 mt-2">
@@ -131,8 +131,16 @@
                 </div>
               </div>
               <div class="card-body py-2">
-                <h6 class="fw-semibold m-0">{{ outfit.title || 'Untitled Outfit' }}</h6>
-                <p class="text-primary small mt-1">{{ outfit.category }}</p>
+                <h6 class="fw-semibold m-0">{{ outfit.name || outfit.title || 'Untitled Outfit' }}</h6>
+                <div v-if="outfit.seasons && outfit.seasons.length" class="d-flex flex-wrap gap-1 mt-1">
+                  <span 
+                    v-for="season in outfit.seasons.slice(0, 2)" 
+                    :key="season"
+                    class="badge bg-light text-secondary small"
+                  >
+                    {{ season }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,10 +150,7 @@
         <div v-else class="text-center py-5">
           <div class="fs-1 opacity-50 mb-3">👕</div>
           <h3>No outfits yet</h3>
-          <p>Create your first outfit to get started!</p>
-          <button class="btn btn-dark px-4" @click="$router.push('/app/create')">
-            Create Outfit
-          </button>
+          <p>Use the + button to create your first outfit!</p>
         </div>
 
       </div>
@@ -156,9 +161,9 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCollection } from 'vuefire'
-import { collection, query, where, orderBy, updateDoc, doc } from 'firebase/firestore'
-import { db, auth } from '@/firebase'
+import { useCollection, useCurrentUser } from 'vuefire'
+import { collection, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/firebase'
 import FilterPanel from '@/components/FilterPanel.vue'
 
 export default {
@@ -171,67 +176,46 @@ export default {
     const isMobile = ref(false)
     const activeFilters = ref({})
     
-    // Load outfits from Firestore using VueFire
-    const user = auth.currentUser
-    const outfitsQuery = user ? query(
-      collection(db, 'outfits'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    ) : null
+    const currentUser = useCurrentUser()
+    const outfitsQuery = computed(() => {
+      if (!currentUser.value) {
+        // Return a query to a non-existent collection to avoid VueFire errors
+        // This will return empty results until user is authenticated
+        return query(collection(db, '_placeholder'))
+      }
+      return query(
+        collection(db, 'users', currentUser.value.uid, 'outfits'),
+        orderBy('createdAt', 'desc')
+      )
+    })
     
     const outfits = useCollection(outfitsQuery)
 
-    // Check mobile layout
-    const checkMobile = () => {
-      isMobile.value = window.innerWidth < 1024
-    }
-
-    onMounted(() => {
-      checkMobile()
-      window.addEventListener('resize', checkMobile)
-    })
-
-    onUnmounted(() => {
-      window.removeEventListener('resize', checkMobile)
-    })
+    const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
+    onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
+    onUnmounted(() => { window.removeEventListener('resize', checkMobile) })
 
     const filteredOutfits = computed(() => {
       if (!outfits.value) return []
-      
       return outfits.value.filter(outfit => {
-        const { categories, seasons, colors, events } = activeFilters.value
-        
-        if (categories && categories.length > 0) {
-          if (!outfit.category || !categories.includes(outfit.category)) {
-            return false
-          }
+        const { seasons, colors, events } = activeFilters.value
+        if (seasons?.length) {
+          const outfitSeasons = Array.isArray(outfit.seasons) ? outfit.seasons : outfit.season ? [outfit.season] : []
+          if (!outfitSeasons.some(s => seasons.includes(s))) return false
         }
-        
-        if (seasons && seasons.length > 0) {
-          if (!outfit.season || !seasons.includes(outfit.season)) {
-            return false
-          }
+        if (colors?.length) {
+          const outfitColors = Array.isArray(outfit.colors) ? outfit.colors : outfit.color ? [outfit.color] : []
+          if (!outfitColors.some(c => colors.includes(c))) return false
         }
-        
-        if (colors && colors.length > 0) {
-          if (!outfit.color || !colors.includes(outfit.color)) {
-            return false
-          }
+        if (events?.length) {
+          const outfitEvents = Array.isArray(outfit.events) ? outfit.events : outfit.event ? [outfit.event] : []
+          if (!outfitEvents.some(e => events.includes(e))) return false
         }
-        
-        if (events && events.length > 0) {
-          if (!outfit.event || !events.includes(outfit.event)) {
-            return false
-          }
-        }
-        
         return true
       })
     })
 
-    const handleFilterChange = (filters) => {
-      activeFilters.value = filters
-    }
+    const handleFilterChange = (filters) => { activeFilters.value = filters }
 
     const truncateDescription = (desc) => {
       if (!desc) return ''
@@ -239,11 +223,12 @@ export default {
     }
 
     const toggleFavorite = async (outfit) => {
+      if (!currentUser.value) return
       try {
-        const outfitRef = doc(db, 'outfits', outfit.id)
+        const outfitRef = doc(db, 'users', currentUser.value.uid, 'outfits', outfit.id)
         await updateDoc(outfitRef, {
           favorite: !outfit.favorite,
-          updatedAt: new Date()
+          updatedAt: serverTimestamp()
         })
       } catch (error) {
         console.error('Error updating favorite:', error)
@@ -254,10 +239,6 @@ export default {
       router.push(`/app/outfits/${outfitId}`)
     }
 
-    const navigateToCreate = () => {
-      router.push('/app/create')
-    }
-
     return {
       isMobile,
       outfits,
@@ -265,16 +246,24 @@ export default {
       handleFilterChange,
       truncateDescription,
       toggleFavorite,
-      navigateToItem,
-      navigateToCreate
+      navigateToItem
     }
   }
 }
 </script>
 
 <style scoped>
+.outfit-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
 .outfit-card:hover {
   transform: translateY(-4px);
-  transition: 0.3s ease;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.bg-gradient {
+  background-size: cover;
 }
 </style>

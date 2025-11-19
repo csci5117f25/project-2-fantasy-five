@@ -26,13 +26,13 @@
           <img
             v-if="outfit.imageUrl"
             :src="outfit.imageUrl"
-            :alt="outfit.title"
+            :alt="outfit.name"
             class="img-fluid"
           />
 
           <!-- Composition Grid -->
           <div
-            v-else
+            v-else-if="outfit.itemDetails && outfit.itemDetails.length"
             class="row row-cols-2 p-4 g-3 bg-white"
           >
             <div
@@ -58,7 +58,7 @@
       <!-- Info Section -->
       <div class="col-12">
         <div class="card p-4 shadow-sm">
-          <h2 class="fw-bold mb-2">{{ outfit.title }}</h2>
+          <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
 
           <p v-if="outfit.description" class="text-muted">
             {{ outfit.description }}
@@ -73,7 +73,7 @@
               v-for="item in outfit.itemDetails"
               :key="item.id"
               class="list-group-item list-group-item-action d-flex align-items-center"
-              @click="$router.push(`/app/clothing/${item.id}`)"
+              @click="navigateToClothingItem(item.id)"
             >
               <img
                 v-if="item.imageUrl"
@@ -90,25 +90,27 @@
 
               <div>
                 <div class="fw-semibold">{{ item.name }}</div>
-                <div class="text-primary small">{{ item.category }}</div>
-                <div class="text-muted small" v-if="item.color">{{ item.color }}</div>
+                <div class="text-primary small">{{ getCategoryLabel(item.category) }}</div>
+                <div class="text-muted small" v-if="item.colors && item.colors.length">
+                  {{ item.colors.join(', ') }}
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Details Grid -->
           <div class="row g-3 mt-4">
-            <div class="col-md-4" v-if="outfit.season">
+            <div class="col-md-4" v-if="outfit.seasons && outfit.seasons.length">
               <div class="border rounded p-3 bg-light">
-                <div class="fw-medium text-secondary">Season</div>
-                <div class="fw-semibold">{{ outfit.season }}</div>
+                <div class="fw-medium text-secondary">Seasons</div>
+                <div class="fw-semibold">{{ outfit.seasons.join(', ') }}</div>
               </div>
             </div>
 
-            <div class="col-md-4" v-if="outfit.event">
+            <div class="col-md-4" v-if="outfit.events && outfit.events.length">
               <div class="border rounded p-3 bg-light">
-                <div class="fw-medium text-secondary">Event</div>
-                <div class="fw-semibold">{{ outfit.event }}</div>
+                <div class="fw-medium text-secondary">Events</div>
+                <div class="fw-semibold">{{ outfit.events.join(', ') }}</div>
               </div>
             </div>
 
@@ -117,6 +119,24 @@
                 <div class="fw-medium text-secondary">Created</div>
                 <div class="fw-semibold">{{ formatDate(outfit.createdAt) }}</div>
               </div>
+            </div>
+          </div>
+
+          <!-- Colors -->
+          <div v-if="outfit.colors && outfit.colors.length" class="mt-4">
+            <h4>Colors</h4>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span 
+                v-for="color in outfit.colors" 
+                :key="color" 
+                class="badge px-3 py-2"
+                :style="{ 
+                  backgroundColor: getColorHex(color), 
+                  color: getContrastColor(color) 
+                }"
+              >
+                {{ color }}
+              </span>
             </div>
           </div>
 
@@ -138,169 +158,172 @@
 
   <!-- Loading State -->
   <div v-else class="text-center py-5">
-    <div class="spinner-border text-primary"></div>
-    <p class="mt-3 text-muted">Loading...</p>
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading outfit details...</p>
   </div>
 </template>
 
-<!-- <script>
-import { useDocument } from "vuefire";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "@/firebase";
-import { useRoute, useRouter } from "vue-router";
-
-export default {
-  name: "OutfitDetail",
-  setup() {
-    const route = useRoute();
-    const router = useRouter();
-
-    const outfitRef = doc(db, "outfits", route.params.id);
-    const outfit = useDocument(outfitRef);
-
-    return { outfit, route, router };
-  },
-  methods: {
-    getCategoryIcon(category) {
-      const icons = {
-        Tops: "👕",
-        Bottoms: "👖",
-        Shoes: "👟",
-        Accessories: "👒",
-        Outerwear: "🧥",
-        Dresses: "👗",
-      };
-      return icons[category] || "👕";
-    },
-
-    formatDate(date) {
-      return new Date(date).toLocaleDateString();
-    },
-
-    async toggleFavorite() {
-      try {
-        await updateDoc(doc(db, "outfits", this.route.params.id), {
-          favorite: !this.outfit.favorite,
-          updatedAt: new Date(),
-        });
-      } catch (err) {
-        console.error("Favorite update failed:", err);
-      }
-    },
-
-    editOutfit() {
-      this.$router.push(`/app/create?edit=${this.outfit.id}`);
-    },
-
-    confirmDelete() {
-      if (confirm("Are you sure you want to delete this outfit?")) {
-        this.deleteOutfit();
-      }
-    },
-
-    async deleteOutfit() {
-      try {
-        await deleteDoc(doc(db, "outfits", this.route.params.id));
-        this.$router.push("/app/outfits");
-      } catch (err) {
-        console.error("Delete failed:", err);
-        alert("Failed to delete outfit");
-      }
-    },
-  },
-};
-</script> -->
-
 <script>
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useDocument, useCurrentUser } from 'vuefire'
+import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/firebase'
+
 export default {
-  name: "OutfitDetail",
+  name: 'OutfitDetail',
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const currentUser = useCurrentUser()
 
-  data() {
-    return {
-      loading: true,
-      outfit: null,
-    };
-  },
+    const outfitRef = computed(() => {
+      if (!currentUser.value) return null
+      return doc(db, 'users', currentUser.value.uid, 'outfits', route.params.id)
+    })
 
-  created() {
-    // --- MOCK DATA ---
-    setTimeout(() => {
-      this.outfit = {
-        id: "mock123",
-        title: "Cozy Winter Look",
-        description:
-          "Soft knit sweater paired with warm leggings and snow boots.",
-        favorite: true,
-        createdAt: Date.now(),
-        season: "Winter",
-        event: "Casual",
-        tags: ["warm", "cozy", "neutral"],
-        imageUrl:
-          "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=500&q=60",
+    const outfit = useDocument(outfitRef)
 
-        itemDetails: [
-          {
-            id: "item1",
-            name: "Beige Knit Sweater",
-            category: "Tops",
-            color: "Cream",
-            imageUrl:
-              "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=60",
-          },
-          {
-            id: "item2",
-            name: "Black Winter Leggings",
-            category: "Bottoms",
-            color: "Black",
-            imageUrl:
-              "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=60",
-          },
-          {
-            id: "item3",
-            name: "Snow Boots",
-            category: "Shoes",
-            color: "Brown",
-            imageUrl:
-              "https://images.unsplash.com/photo-1528701800489-20be9fdef1f5?auto=format&fit=crop&w=400&q=60",
-          },
-        ],
-      };
-
-      this.loading = false;
-    }, 800); // simulate load
-  },
-
-  methods: {
-    getCategoryIcon(category) {
-      const icons = {
-        Tops: "👕",
-        Bottoms: "👖",
-        Shoes: "👟",
-        Accessories: "👒",
-        Outerwear: "🧥",
-        Dresses: "👗",
-      };
-      return icons[category] || "👕";
-    },
-
-    formatDate(date) {
-      return new Date(date).toLocaleDateString();
-    },
-
-    toggleFavorite() {
-      this.outfit.favorite = !this.outfit.favorite;
-    },
-
-    editOutfit() {
-      alert("Edit clicked (mock)!");
-    },
-
-    confirmDelete() {
-      if (confirm("Delete mock outfit?")) {
-        alert("Deleted!");
-        this.$router.push("/app/outfits");
+    const getCategoryIcon = (category) => {
+      const icons = { 
+        head: '👒', 
+        top: '👕', 
+        bottom: '👖', 
+        shoe: '👟', 
+        accessory: '💍' 
       }
-    },
-  },
-};
+      return icons[category] || '👕'
+    }
+
+    const getCategoryLabel = (category) => {
+      const labels = {
+        head: 'Headwear',
+        top: 'Top',
+        bottom: 'Bottom',
+        shoe: 'Shoes',
+        accessory: 'Accessory'
+      }
+      return labels[category] || category
+    }
+
+    const getCategoryGradient = (category) => {
+      const gradients = {
+        head: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        top: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        bottom: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        shoe: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        accessory: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+      }
+      return gradients[category] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    }
+
+    const getColorHex = (colorName) => {
+      const colorMap = {
+        'Black': '#000000',
+        'White': '#FFFFFF',
+        'Red': '#FF0000',
+        'Blue': '#0000FF',
+        'Green': '#008000',
+        'Yellow': '#FFFF00',
+        'Purple': '#800080',
+        'Pink': '#FFC0CB',
+        'Orange': '#FFA500',
+        'Brown': '#A52A2A',
+        'Gray': '#808080',
+        'Grey': '#808080',
+        'Multi': '#9370DB'
+      }
+      return colorMap[colorName] || '#CCCCCC'
+    }
+
+    const getContrastColor = (colorName) => {
+      const darkColors = ['Black', 'Blue', 'Brown', 'Gray', 'Grey', 'Purple']
+      return darkColors.includes(colorName) ? '#FFFFFF' : '#000000'
+    }
+
+    const getSeasonBadgeClass = (season) => {
+      const classes = {
+        'Spring': 'bg-success',
+        'Summer': 'bg-warning text-dark',
+        'Fall': 'bg-danger',
+        'Winter': 'bg-primary',
+        'All Season': 'bg-secondary'
+      }
+      return classes[season] || 'bg-secondary'
+    }
+
+    const formatDate = (timestamp) => {
+      if (!timestamp) return 'Unknown'
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+      return date.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    }
+
+    const navigateToClothingItem = (itemId) => {
+      router.push(`/app/clothing/${itemId}`)
+    }
+
+    const toggleFavorite = async () => {
+      if (!currentUser.value || !outfit.value) return
+      try {
+        await updateDoc(outfitRef.value, {
+          favorite: !outfit.value.favorite,
+          updatedAt: serverTimestamp()
+        })
+      } catch (error) {
+        console.error('Error updating favorite:', error)
+        alert('Failed to update favorite. Please try again.')
+      }
+    }
+
+    const editOutfit = () => {
+      router.push(`/app/outfits/${route.params.id}/edit`)
+    }
+
+    const confirmDelete = () => {
+      if (confirm('Are you sure you want to delete this outfit? This action cannot be undone.')) {
+        deleteOutfit()
+      }
+    }
+
+    const deleteOutfit = async () => {
+      if (!currentUser.value || !outfitRef.value) return
+      try {
+        await deleteDoc(outfitRef.value)
+        router.push('/app/outfits')
+      } catch (error) {
+        console.error('Error deleting outfit:', error)
+        alert('Failed to delete outfit. Please try again.')
+      }
+    }
+
+    return {
+      outfit,
+      getCategoryIcon,
+      getCategoryLabel,
+      getCategoryGradient,
+      getColorHex,
+      getContrastColor,
+      getSeasonBadgeClass,
+      formatDate,
+      navigateToClothingItem,
+      toggleFavorite,
+      editOutfit,
+      confirmDelete
+    }
+  }
+}
 </script>
+
+<style scoped>
+.list-group-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(4px);
+  transition: all 0.2s ease;
+}
+</style>
