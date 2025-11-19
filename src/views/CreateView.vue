@@ -235,7 +235,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCurrentUser } from 'vuefire'
 import { collection, addDoc, serverTimestamp, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage, auth } from '@/firebase'
+import { db, storage } from '@/firebase'
 
 export default {
   name: 'CreateView',

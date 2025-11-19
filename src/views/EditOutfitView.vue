@@ -189,7 +189,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage, auth } from '@/firebase'
+import { db, storage } from '@/firebase'
 
 export default {
   name: 'EditOutfitView',

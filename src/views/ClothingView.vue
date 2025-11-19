@@ -86,10 +86,7 @@
           <div v-else class="text-center py-5">
             <div class="fs-1 opacity-50 mb-3">👕</div>
             <h3>No clothing items yet</h3>
-            <p>Add your first clothing item to get started!</p>
-            <button class="btn btn-dark px-4" @click="$router.push('/app/create?type=Clothing')">
-              Add Clothing
-            </button>
+            <p>Use the + button to create your first clothing item!</p>
           </div>
 
         </div>
@@ -142,10 +139,7 @@
         <div v-else class="text-center py-5">
           <div class="fs-1 opacity-50 mb-3">👕</div>
           <h3>No clothing items yet</h3>
-          <p>Add your first clothing item to get started!</p>
-          <button class="btn btn-dark px-4" @click="$router.push('/app/create?type=Clothing')">
-            Add Clothing
-          </button>
+          <p>Use the + button to create your first clothing item!</p>
         </div>
 
       </div>
