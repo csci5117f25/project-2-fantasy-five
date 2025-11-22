@@ -55,14 +55,14 @@ const routes = [
           title: 'My Clothing - Closet Cloud'
         }
       },
-    //   {
-    //     path: 'try-on',
-    //     name: 'TryOn',
-    //     component: () => import('@/views/TryOnView.vue'),
-    //     meta: { 
-    //       title: 'Virtual Try-On - Closet Cloud'
-    //     }
-    //   },
+      {
+        path: 'try-on',
+        name: 'TryOn',
+        component: () => import('@/views/TryOnView.vue'),
+        meta: { 
+        title: 'Virtual Try-On - Closet Cloud'
+       }
+      },
     //   {
     //     path: 'profile',
     //     name: 'Profile',
