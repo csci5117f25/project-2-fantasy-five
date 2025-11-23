@@ -97,7 +97,7 @@ export default {
     })
 
     const filterSections = [
-      { key: 'categories', title: 'Item Category', options: ['head', 'top', 'bottom', 'shoe', 'accessory'] },
+      { key: 'categories', title: 'Item Category', options: ['head', 'top', 'bottom', 'shoe', 'accessory', 'dress'] },
       { key: 'seasons', title: 'Season', options: ['Spring', 'Summer', 'Fall', 'Winter', 'All Season'] },
       { key: 'colors', title: 'Color', options: ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi'] },
       { key: 'events', title: 'Event', options: ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel'] }

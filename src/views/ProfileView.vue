@@ -54,7 +54,7 @@
                     class="editable-username text-muted d-block" 
                     contenteditable
                     @blur="saveUsername"
-                  >@{{ userProfile.username || 'username' }}</span>
+                  >{{ userProfile.username || 'username' }}</span>
                 </div>
 
                 <!-- Bio -->

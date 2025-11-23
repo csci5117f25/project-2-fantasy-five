@@ -192,7 +192,7 @@ export default {
       tags: []
     })
 
-    const categories = ['head', 'top', 'bottom', 'shoe', 'accessory']
+    const categories = ['head', 'top', 'bottom', 'shoe', 'accessory', 'dress']
     const seasons = ['Spring', 'Summer', 'Fall', 'Winter', 'All Season']
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
@@ -302,7 +302,7 @@ export default {
 
     const availableSizes = computed(() => {
       const category = formData.value.category
-      if (category === 'top' || category === 'head') {
+      if (category === 'top' || category === 'head' || category === 'dress') {
         return ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
       } else if (category === 'bottom') {
         const waistSizes = Array.from({length: 20}, (_, i) => (26 + i*2).toString())

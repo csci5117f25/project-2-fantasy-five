@@ -157,7 +157,8 @@ export default {
         top: '👕', 
         bottom: '👖', 
         shoe: '👟', 
-        accessory: '💍' 
+        accessory: '💍' , 
+        dress: '👗'
       }
       return icons[category] || '👕'
     }
@@ -168,7 +169,8 @@ export default {
         top: 'Top',
         bottom: 'Bottom',
         shoe: 'Shoes',
-        accessory: 'Accessory'
+        accessory: 'Accessory', 
+        dress: 'Dress'
       }
       return labels[category] || category
     }

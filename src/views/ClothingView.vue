@@ -206,7 +206,7 @@ export default {
     const handleFilterChange = (filters) => { activeFilters.value = filters }
 
     const getCategoryIcon = (category) => {
-      const icons = { head: '👒', top: '👕', bottom: '👖', shoe: '👟', accessory: '👒' }
+      const icons = { head: '👒', top: '👕', bottom: '👖', shoe: '👟', accessory: '👒', dress: '👗'}
       return icons[category] || '👕'
     }
 
@@ -216,7 +216,8 @@ export default {
         top: 'Top',
         bottom: 'Bottom',
         shoe: 'Shoes',
-        accessory: 'Accessory'
+        accessory: 'Accessory', 
+        dress: 'Dress'
       }
       return labels[category] || category
     }

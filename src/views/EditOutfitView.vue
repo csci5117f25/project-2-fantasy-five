@@ -121,6 +121,19 @@
         </div>
       </div>
 
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
+        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+      </div>
+
+      <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
+        <div class="border rounded p-2 d-inline-block">
+          <img :src="collagePreviewUrl" alt="Collage preview" style="max-width: 300px; height: auto;">
+        </div>
+        <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
+      </div>
+
+
       <!-- Tags -->
       <div class="mb-3">
         <label class="form-label">Tags</label>
@@ -184,11 +197,11 @@
 
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, getDocs } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
 
 export default {
@@ -199,17 +212,17 @@ export default {
     const fileInput = ref(null)
     const currentUser = useCurrentUser()
     const loading = ref(true)
-    
-    const imageUrl = ref(null)
-    const imageFile = ref(null)
-    const existingImageUrl = ref(null)
+
+    const imageUrl = ref(null)            
+    const imageFile = ref(null)           
+    const existingImageUrl = ref(null)    
     const newTag = ref('')
     const saving = ref(false)
     const showItemSelector = ref(false)
     const selectedSeason = ref('')
     const selectedColor = ref('')
     const selectedEvent = ref('')
-    
+
     const formData = ref({
       title: '',
       description: '',
@@ -226,21 +239,17 @@ export default {
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
 
-    const isFormValid = computed(() => {
-      return formData.value.title.trim() !== ''
-    })
+    const isFormValid = computed(() => formData.value.title.trim() !== '')
+
+    const collagePreviewEnabled = ref(true)
+    const collagePreviewUrl = ref(null)
 
     const loadAvailableItems = async () => {
       try {
         if (!currentUser.value) return
-
         const clothingQuery = query(collection(db, 'users', currentUser.value.uid, 'clothingItems'))
         const querySnapshot = await getDocs(clothingQuery)
-        
-        availableItems.value = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+        availableItems.value = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }))
       } catch (error) {
         console.error('Error loading clothing items:', error)
       }
@@ -252,49 +261,41 @@ export default {
           router.push('/login')
           return
         }
-
         const outfitId = route.params.id
         const outfitRef = doc(db, 'users', currentUser.value.uid, 'outfits', outfitId)
         const outfitDoc = await getDoc(outfitRef)
-        
         if (!outfitDoc.exists()) {
           alert('Outfit not found')
           router.push('/app/outfits')
           return
         }
-
         const outfit = outfitDoc.data()
-        
         formData.value.title = outfit.name || ''
         formData.value.description = outfit.description || ''
         formData.value.seasons = Array.isArray(outfit.seasons) ? [...outfit.seasons] : []
         formData.value.colors = Array.isArray(outfit.colors) ? [...outfit.colors] : []
         formData.value.events = Array.isArray(outfit.events) ? [...outfit.events] : []
         formData.value.tags = Array.isArray(outfit.tags) ? [...outfit.tags] : []
-        
+
         existingImageUrl.value = outfit.imageUrl || null
         imageUrl.value = outfit.imageUrl || null
-        
-        // Load selected items from itemDetails if available
+
         if (Array.isArray(outfit.itemDetails) && outfit.itemDetails.length > 0) {
-          selectedItems.value = outfit.itemDetails.map(item => ({ ...item }))
+          selectedItems.value = outfit.itemDetails.map(i => ({ ...i }))
         } else if (Array.isArray(outfit.clothingItemIds) && outfit.clothingItemIds.length > 0) {
-          // Fallback: load items by IDs if itemDetails not available
           const items = []
-          for (const itemId of outfit.clothingItemIds) {
+          for (const id of outfit.clothingItemIds) {
             try {
-              const itemRef = doc(db, 'users', currentUser.value.uid, 'clothingItems', itemId)
-              const itemDoc = await getDoc(itemRef)
-              if (itemDoc.exists()) {
-                items.push({ id: itemDoc.id, ...itemDoc.data() })
-              }
-            } catch (error) {
-              console.error(`Error loading item ${itemId}:`, error)
+              const itRef = doc(db, 'users', currentUser.value.uid, 'clothingItems', id)
+              const itDoc = await getDoc(itRef)
+              if (itDoc.exists()) items.push({ id: itDoc.id, ...itDoc.data() })
+            } catch (err) {
+              console.error(`Error loading item ${id}`, err)
             }
           }
           selectedItems.value = items
         }
-        
+
         loading.value = false
       } catch (error) {
         console.error('Error loading outfit:', error)
@@ -303,6 +304,98 @@ export default {
       }
     }
 
+    onMounted(async () => {
+      await loadAvailableItems()
+      await loadOutfit()
+    })
+
+    /* -------------- collage utils --------------- */
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
+        img.src = url
+      })
+    }
+
+    function drawImageContain(ctx, img, dx, dy, dWidth, dHeight) {
+      const iw = img.width
+      const ih = img.height
+      const scale = Math.min(dWidth / iw, dHeight / ih)
+      const sw = iw * scale
+      const sh = ih * scale
+      const sx = dx + (dWidth - sw) / 2
+      const sy = dy + (dHeight - sh) / 2
+      ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
+    async function generateCollageFromUrls(urls = [], size = 800) {
+      const imagesToUse = urls.slice(0, 4)
+      if (imagesToUse.length === 0) return null
+
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, size, size)
+
+      const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
+
+      if (imgs.length === 1) {
+        drawImageContain(ctx, imgs[0], 0, 0, size, size)
+      } else if (imgs.length === 2) {
+        const w = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, w, size)
+        drawImageContain(ctx, imgs[1], w, 0, size - w, size)
+      } else if (imgs.length === 3) {
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, size, size - half)
+      } else {
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, half, size - half)
+        drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+      }
+
+      return canvas.toDataURL('image/png')
+    }
+
+    const regeneratePreview = async () => {
+      if (!collagePreviewEnabled.value) {
+        collagePreviewUrl.value = null
+        return
+      }
+
+      const urls = selectedItems.value.map(it => it.imageUrl).filter(Boolean)
+      if (urls.length === 0 && imageUrl.value) urls.push(imageUrl.value)
+      if (urls.length === 0) {
+        collagePreviewUrl.value = null
+        return
+      }
+
+      try {
+        collagePreviewUrl.value = await generateCollageFromUrls(urls, 800)
+      } catch (err) {
+        console.error('Failed to generate collage preview', err)
+        collagePreviewUrl.value = null
+      }
+    }
+
+    watch(selectedItems, () => {
+      if (collagePreviewEnabled.value) regeneratePreview()
+    }, { deep: true })
+
+    watch(imageUrl, () => {
+      if (collagePreviewEnabled.value) regeneratePreview()
+    })
+
+    /* ---------------- image upload & file handling ---------------- */
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera not available. Please upload an image instead.')
@@ -343,10 +436,7 @@ export default {
       }
     }
 
-    const uploadImage = () => {
-      fileInput.value.click()
-    }
-
+    const uploadImage = () => fileInput.value.click()
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
       if (file) {
@@ -354,14 +444,15 @@ export default {
         imageUrl.value = URL.createObjectURL(file)
       }
     }
-
     const removeImage = () => {
       imageUrl.value = null
       imageFile.value = null
       existingImageUrl.value = null
       fileInput.value.value = ''
+      if (collagePreviewEnabled.value) regeneratePreview()
     }
 
+    /* ---------------- Selection handlers ---------------- */
     const addSeason = () => {
       if (selectedSeason.value && !formData.value.seasons.includes(selectedSeason.value)) {
         formData.value.seasons.push(selectedSeason.value)
@@ -471,90 +562,73 @@ export default {
       showItemSelector.value = false
     }
 
+    /* ---------------- Save outfit ---------------- */
     const saveItem = async () => {
       try {
-        if (!isFormValid.value) {
-          alert('Please fill in the outfit name.')
-          return
-        }
-        
+        if (!isFormValid.value) { alert('Please fill in the outfit name.'); return }
         saving.value = true
-        
-        if (!currentUser.value) {
-          alert('You must be logged in to save items.')
-          router.push('/login')
-          return
-        }
+        if (!currentUser.value) { alert('You must be logged in to save items.'); router.push('/login'); saving.value=false; return }
 
         const outfitId = route.params.id
-        let imageDownloadURL = existingImageUrl.value
-        
-        if (imageFile.value) {
-          try {
-            const fileName = `${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-            const storagePath = `users/${currentUser.value.uid}/outfits/${fileName}`
-            const fileRef = storageRef(storage, storagePath)
-            
+        let imageDownloadURL = null
+
+        if(imageFile.value){
+          try{
+            const fileName=`${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g,'_')}`
+            const storagePath=`users/${currentUser.value.uid}/outfits/${fileName}`
+            const fRef = storageRef(storage, storagePath)
             await currentUser.value.getIdToken(true)
-            
-            await uploadBytes(fileRef, imageFile.value, {
-              contentType: imageFile.value.type || 'image/jpeg'
-            })
-            imageDownloadURL = await getDownloadURL(fileRef)
-          } catch (uploadError) {
-            if (uploadError.code === 'storage/unauthorized') {
-              alert('Permission denied: You may not be logged in or your session expired. Please log in again.')
-              router.push('/login')
-              saving.value = false
-              return
-            } else if (uploadError.code === 'storage/canceled') {
-              // Keep existing image
-            } else if (uploadError.message?.includes('CORS') || uploadError.message?.includes('cors')) {
-              alert('Image upload failed due to CORS configuration. The outfit will be saved with the existing image.')
-            } else {
-              alert(`Image upload failed: ${uploadError.message || uploadError.code || 'Unknown error'}. The outfit will be saved with the existing image.`)
-            }
-          }
+            await uploadBytes(fRef, imageFile.value, {contentType:imageFile.value.type||'image/jpeg'})
+            imageDownloadURL = await getDownloadURL(fRef)
+          }catch(err){ console.error('Image upload failed', err) }
         }
 
+        if(!imageDownloadURL && selectedItems.value.length>0){
+          try{
+            const urls=selectedItems.value.map(it=>it.imageUrl).filter(Boolean)
+            const dataUrl = await generateCollageFromUrls(urls,1200)
+            if(dataUrl){
+              const fileName=`${Date.now()}-collage.png`
+              const storagePath=`users/${currentUser.value.uid}/outfits/${fileName}`
+              const fRef=storageRef(storage, storagePath)
+              await currentUser.value.getIdToken(true)
+              await uploadString(fRef,dataUrl,'data_url')
+              imageDownloadURL=await getDownloadURL(fRef)
+            }
+          }catch(err){ console.error('Collage generation/upload failed',err) }
+        }
+
+        if(!imageDownloadURL) imageDownloadURL=existingImageUrl.value||null
+
         const outfitRef = doc(db, 'users', currentUser.value.uid, 'outfits', outfitId)
-        await updateDoc(outfitRef, {
+        await updateDoc(outfitRef,{
           name: formData.value.title,
-          description: formData.value.description || '',
-          seasons: Array.isArray(formData.value.seasons) ? formData.value.seasons : [],
-          colors: Array.isArray(formData.value.colors) ? formData.value.colors : [],
-          events: Array.isArray(formData.value.events) ? formData.value.events : [],
-          tags: Array.isArray(formData.value.tags) ? formData.value.tags : [],
-          clothingItemIds: selectedItems.value.length > 0 
-            ? selectedItems.value.map(item => item.id) 
-            : [],
-          itemDetails: selectedItems.value.length > 0 
-            ? selectedItems.value 
-            : [],
-          imageUrl: imageDownloadURL || '',
+          description: formData.value.description||'',
+          seasons: Array.isArray(formData.value.seasons)?formData.value.seasons:[],
+          colors: Array.isArray(formData.value.colors)?formData.value.colors:[],
+          events: Array.isArray(formData.value.events)?formData.value.events:[],
+          tags: Array.isArray(formData.value.tags)?formData.value.tags:[],
+          clothingItemIds:selectedItems.value.length>0?selectedItems.value.map(item=>item.id):[],
+          itemDetails:selectedItems.value.length>0?selectedItems.value:[],
+          imageUrl:imageDownloadURL||'',
           updatedAt: serverTimestamp()
         })
-        
+
         alert('Outfit updated successfully!')
         router.push(`/app/outfits/${outfitId}`)
-        
-      } catch (error) {
-        console.error('Error updating outfit:', error)
-        alert(`Failed to update outfit: ${error.message || 'Unknown error'}.`)
-      } finally {
-        saving.value = false
+      } catch(error){
+        console.error('Error updating outfit:',error)
+        alert(`Failed to update outfit: ${error.message||'Unknown error'}.`)
+      } finally{
+        saving.value=false
       }
     }
-
-    onMounted(async () => {
-      await loadAvailableItems()
-      await loadOutfit()
-    })
 
     return {
       loading,
       imageUrl,
       imageFile,
+      existingImageUrl,
       newTag,
       saving,
       showItemSelector,
@@ -587,9 +661,14 @@ export default {
       isItemSelected,
       removeFromOutfit,
       confirmItemSelection,
-      saveItem
+      saveItem,
+      collagePreviewEnabled,
+      collagePreviewUrl,
+      regeneratePreview
     }
   }
 }
 </script>
+
+
 
