@@ -168,6 +168,19 @@
         </div>
       </div>
 
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
+        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+      </div>
+
+      <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
+        <div class="border rounded p-2 d-inline-block">
+          <img :src="collagePreviewUrl" alt="Collage preview" style="max-width: 300px; height: auto;">
+        </div>
+        <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
+      </div>
+
+
       <!-- Tags -->
       <div class="mb-3">
         <label class="form-label">Tags</label>
@@ -234,7 +247,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCurrentUser } from 'vuefire'
 import { collection, addDoc, serverTimestamp, query, getDocs } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
 
 export default {
@@ -244,23 +257,20 @@ export default {
     const route = useRoute()
     const fileInput = ref(null)
     const currentUser = useCurrentUser()
-    
+
     const getTypeFromQuery = () => {
       const type = route.query.type
-      if (type === 'Outfit' || type === 'outfit') {
-        return 'Outfit'
-      }
+      if (type === 'Outfit' || type === 'outfit') return 'Outfit'
       return 'Clothing'
     }
-    
+
     const currentType = ref(getTypeFromQuery())
     const types = ['Clothing', 'Outfit']
-    
-    // Watch for route query changes to update type
+
     watch(() => route.query, () => {
       currentType.value = getTypeFromQuery()
     }, { immediate: true, deep: true })
-    
+
     const imageUrl = ref(null)
     const imageFile = ref(null)
     const newTag = ref('')
@@ -269,7 +279,7 @@ export default {
     const selectedSeason = ref('')
     const selectedColor = ref('')
     const selectedEvent = ref('')
-    
+
     const formData = ref({
       title: '',
       description: '',
@@ -285,34 +295,150 @@ export default {
     const selectedItems = ref([])
     const availableItems = ref([])
 
-    const categories = ['head', 'top', 'bottom', 'shoe', 'accessory']
+    const categories = ['head', 'top', 'bottom', 'shoe', 'accessory', 'dress']
     const seasons = ['Spring', 'Summer', 'Fall', 'Winter', 'All Season']
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
+
+    const collagePreviewEnabled = ref(true) // UI should allow toggling this
+    const collagePreviewUrl = ref(null)      // data URL for preview
 
     const isFormValid = computed(() => {
       if (currentType.value === 'Outfit') {
         return formData.value.title.trim() !== ''
       }
-      
       return formData.value.title.trim() !== '' && formData.value.category !== ''
     })
 
     const loadAvailableItems = async () => {
       try {
         if (!currentUser.value) return
-
         const clothingQuery = query(collection(db, 'users', currentUser.value.uid, 'clothingItems'))
         const querySnapshot = await getDocs(clothingQuery)
-        
-        availableItems.value = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+
+        availableItems.value = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }))
       } catch (error) {
         console.error('Error loading clothing items:', error)
       }
     }
+
+    onMounted(loadAvailableItems)
+
+    /* -------------------------
+       Collage generation utils
+       ------------------------- */
+
+    // Load an image URL into an HTMLImageElement with crossOrigin
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous' // required to draw remote images
+        img.onload = () => resolve(img)
+        img.onerror = (e) => reject(new Error(`Failed to load image: ${url}`))
+        img.src = url
+      })
+    }
+
+    // Draw an image into target rect but *contain* (no cropping) — centered
+    function drawImageContain(ctx, img, dx, dy, dWidth, dHeight) {
+      const iw = img.width
+      const ih = img.height
+      const scale = Math.min(dWidth / iw, dHeight / ih)
+      const sw = iw * scale
+      const sh = ih * scale
+      const sx = dx + (dWidth - sw) / 2
+      const sy = dy + (dHeight - sh) / 2
+      ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
+    // Generates a square collage dataURL (PNG). Up to 4 items (2x2), fallback layouts for 1 & 2 & 3.
+    async function generateCollageFromUrls(urls = [], size = 800) {
+      // keep at most 4
+      const imagesToUse = urls.slice(0, 4)
+      if (imagesToUse.length === 0) return null
+
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+
+      // background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, size, size)
+
+      // load all images
+      const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
+
+      // layout logic:
+      if (imgs.length === 1) {
+        // single image fills with padding
+        drawImageContain(ctx, imgs[0], 0, 0, size, size)
+      } else if (imgs.length === 2) {
+        // split vertically: left and right
+        const w = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, w, size)
+        drawImageContain(ctx, imgs[1], w, 0, size - w, size)
+      } else if (imgs.length === 3) {
+        // top left, top right, bottom full
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, size, size - half)
+      } else {
+        // 4 images 2x2 grid
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, half, size - half)
+        drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+      }
+
+      // export PNG dataURL
+      return canvas.toDataURL('image/png')
+    }
+
+    // regenerate preview (if enabled)
+    const regeneratePreview = async () => {
+      if (!collagePreviewEnabled.value) {
+        collagePreviewUrl.value = null
+        return
+      }
+
+      // try to use selectedItems' imageUrl first, otherwise fallback to single uploaded image
+      const urls = []
+      // prefer item.imageUrl from selectedItems
+      selectedItems.value.forEach(it => {
+        if (it && it.imageUrl) urls.push(it.imageUrl)
+      })
+      // if no item urls, but user has uploaded a preview image (imageUrl), use that single image
+      if (urls.length === 0 && imageUrl.value) urls.push(imageUrl.value)
+
+      if (urls.length === 0) {
+        collagePreviewUrl.value = null
+        return
+      }
+
+      try {
+        collagePreviewUrl.value = await generateCollageFromUrls(urls, 800)
+      } catch (err) {
+        console.error('Failed to generate collage preview', err)
+        collagePreviewUrl.value = null
+      }
+    }
+
+    // Watch selectedItems changes to update preview live
+    watch(selectedItems, () => {
+      if (collagePreviewEnabled.value) regeneratePreview()
+    }, { deep: true })
+
+    // Watch upload changes (user uploaded image)
+    watch(imageUrl, () => {
+      if (collagePreviewEnabled.value) regeneratePreview()
+    })
+
+    /* -------------------------
+       Image / File helpers & CRUD
+       ------------------------- */
 
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -324,14 +450,29 @@ export default {
         const modal = document.createElement('div')
         modal.className = 'modal d-block'
         modal.style.backgroundColor = 'rgba(0,0,0,0.8)'
-        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Take Photo</h5><button type="button" class="btn-close" id="closeCamera"></button></div><div class="modal-body text-center"><video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px;"></video></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelCamera">Cancel</button><button class="btn btn-primary" id="capturePhoto">Capture</button></div></div></div>'
+        modal.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Take Photo</h5>
+                <button type="button" class="btn-close" id="closeCamera"></button>
+              </div>
+              <div class="modal-body text-center">
+                <video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px;"></video>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCamera">Cancel</button>
+                <button class="btn btn-primary" id="capturePhoto">Capture</button>
+              </div>
+            </div>
+          </div>`
         document.body.appendChild(modal)
         const preview = modal.querySelector('#cameraPreview')
         preview.srcObject = stream
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         const closeCamera = () => {
-          stream.getTracks().forEach(track => track.stop())
+          stream.getTracks().forEach(t => t.stop())
           document.body.removeChild(modal)
         }
         modal.querySelector('#closeCamera').onclick = closeCamera
@@ -354,9 +495,7 @@ export default {
       }
     }
 
-    const uploadImage = () => {
-      fileInput.value.click()
-    }
+    const uploadImage = () => fileInput.value.click()
 
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
@@ -370,30 +509,28 @@ export default {
       imageUrl.value = null
       imageFile.value = null
       fileInput.value.value = ''
+      // regenerate preview without uploaded image
+      if (collagePreviewEnabled.value) regeneratePreview()
     }
 
     const availableSizes = computed(() => {
       const category = formData.value.category
-      if (category === 'top' || category === 'head') {
-        return ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
-      } else if (category === 'bottom') {
-        const waistSizes = Array.from({length: 20}, (_, i) => (26 + i*2).toString())
+      if (category === 'top' || category === 'head' || category === 'dress') return ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+      if (category === 'bottom') {
+        const waistSizes = Array.from({ length: 20 }, (_, i) => (26 + i * 2).toString())
         const inseamSizes = ['28', '30', '32', '34', '36', '38']
         const sizes = [...waistSizes]
         inseamSizes.forEach(inseam => {
-          waistSizes.forEach(waist => {
-            sizes.push(`${waist}x${inseam}`)
-          })
+          waistSizes.forEach(waist => sizes.push(`${waist}x${inseam}`))
         })
         return sizes
-      } else if (category === 'shoe') {
-        return Array.from({length: 21}, (_, i) => (4 + i*0.5).toFixed(1))
-      } else if (category === 'accessory') {
-        return ['One Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
       }
+      if (category === 'shoe') return Array.from({ length: 21 }, (_, i) => (4 + i * 0.5).toFixed(1))
+      if (category === 'accessory') return ['One Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
       return []
     })
 
+    // tag, item selection, etc (same logic you had)
     const addSeason = () => {
       if (selectedSeason.value && !formData.value.seasons.includes(selectedSeason.value)) {
         formData.value.seasons.push(selectedSeason.value)
@@ -420,53 +557,22 @@ export default {
     }
 
     const getSeasonBadgeClass = (season) => {
-      const classes = {
-        'Spring': 'bg-success text-white',
-        'Summer': 'bg-warning text-dark',
-        'Fall': 'bg-danger text-white',
-        'Winter': 'bg-info text-white',
-        'All Season': 'bg-secondary text-white'
-      }
+      const classes = {'Spring': 'bg-success text-white','Summer': 'bg-warning text-dark','Fall': 'bg-danger text-white','Winter': 'bg-info text-white','All Season': 'bg-secondary text-white'}
       return classes[season] || 'bg-primary text-white'
     }
 
     const getColorBadgeClass = (color) => {
       const darkColors = ['Black', 'Blue', 'Purple', 'Brown']
-      if (darkColors.includes(color)) {
-        return 'text-white'
-      }
-      return 'text-dark'
+      return darkColors.includes(color) ? 'text-white' : 'text-dark'
     }
 
     const getColorBadgeStyle = (color) => {
-      const colorMap = {
-        'Black': { backgroundColor: '#000000' },
-        'White': { backgroundColor: '#FFFFFF', border: '1px solid #ccc' },
-        'Red': { backgroundColor: '#FF0000' },
-        'Blue': { backgroundColor: '#0000FF' },
-        'Green': { backgroundColor: '#008000' },
-        'Yellow': { backgroundColor: '#FFFF00' },
-        'Purple': { backgroundColor: '#800080' },
-        'Pink': { backgroundColor: '#FFC0CB' },
-        'Orange': { backgroundColor: '#FFA500' },
-        'Brown': { backgroundColor: '#A52A2A' },
-        'Gray': { backgroundColor: '#808080' },
-        'Multi': { background: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)' }
-      }
+      const colorMap = {'Black': { backgroundColor: '#000000' },'White': { backgroundColor: '#FFFFFF', border: '1px solid #ccc' },'Red': { backgroundColor: '#FF0000' },'Blue': { backgroundColor: '#0000FF' },'Green': { backgroundColor: '#008000' },'Yellow': { backgroundColor: '#FFFF00' },'Purple': { backgroundColor: '#800080' },'Pink': { backgroundColor: '#FFC0CB' },'Orange': { backgroundColor: '#FFA500' },'Brown': { backgroundColor: '#A52A2A' },'Gray': { backgroundColor: '#808080' },'Multi': { background: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)' }}
       return colorMap[color] || { backgroundColor: '#6c757d' }
     }
 
     const getEventBadgeClass = (event) => {
-      const classes = {
-        'Casual': 'bg-secondary text-white',
-        'Formal': 'bg-dark text-white',
-        'Work': 'bg-primary text-white',
-        'Party': 'bg-danger text-white',
-        'Sports': 'bg-success text-white',
-        'Beach': 'bg-info text-white',
-        'Date': 'bg-warning text-dark',
-        'Travel': 'bg-primary text-white'
-      }
+      const classes = {'Casual': 'bg-secondary text-white','Formal': 'bg-dark text-white','Work': 'bg-primary text-white','Party': 'bg-danger text-white','Sports': 'bg-success text-white','Beach': 'bg-info text-white','Date': 'bg-warning text-dark','Travel': 'bg-primary text-white'}
       return classes[event] || 'bg-secondary text-white'
     }
 
@@ -495,81 +601,75 @@ export default {
     }
 
     const toggleItemSelection = (item) => {
-      const index = selectedItems.value.findIndex(selected => selected.id === item.id)
-      if (index > -1) {
-        selectedItems.value.splice(index, 1)
-      } else {
-        selectedItems.value.push({...item})
-      }
+      const index = selectedItems.value.findIndex(s => s.id === item.id)
+      if (index > -1) selectedItems.value.splice(index, 1)
+      else selectedItems.value.push({ ...item })
+      // immediate preview update handled by watcher
     }
 
-    const isItemSelected = (item) => {
-      return selectedItems.value.some(selected => selected.id === item.id)
-    }
+    const isItemSelected = (item) => selectedItems.value.some(s => s.id === item.id)
 
     const removeFromOutfit = (item) => {
-      selectedItems.value = selectedItems.value.filter(selected => selected.id !== item.id)
+      selectedItems.value = selectedItems.value.filter(s => s.id !== item.id)
     }
 
-    const confirmItemSelection = () => {
-      showItemSelector.value = false
-    }
+    const confirmItemSelection = () => showItemSelector.value = false
+
+    /* -------------------------
+       Save item and upload generated collage if needed
+       ------------------------- */
 
     const saveItem = async () => {
       try {
         if (!isFormValid.value) {
-          if (currentType.value === 'Outfit') {
-            alert('Please fill in the outfit name.')
-          } else {
-            alert('Please fill in all required fields (name, category) and add an image.')
-          }
+          if (currentType.value === 'Outfit') alert('Please fill in the outfit name.')
+          else alert('Please fill in all required fields (name, category).')
           return
         }
-        
         saving.value = true
-        
         if (!currentUser.value) {
           alert('You must be logged in to save items.')
           router.push('/login')
           return
         }
 
+        // If the user provided an explicit uploaded image (imageFile), we upload that.
+        // Otherwise if currentType === Outfit, we attempt to generate a collage from selected items.
         let imageDownloadURL = null
-        
         if (imageFile.value) {
-          if (!currentUser.value) {
-            alert('You must be logged in to upload images. Please log in again.')
-            router.push('/login')
-            saving.value = false
-            return
-          }
-          
           try {
             const storageFolder = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
             const fileName = `${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
             const storagePath = `users/${currentUser.value.uid}/${storageFolder}/${fileName}`
-            const fileRef = storageRef(storage, storagePath)
-            
+            const sRef = storageRef(storage, storagePath)
             await currentUser.value.getIdToken(true)
-            
-            await uploadBytes(fileRef, imageFile.value, {
-              contentType: imageFile.value.type || 'image/jpeg'
-            })
-            imageDownloadURL = await getDownloadURL(fileRef)
+            await uploadBytes(sRef, imageFile.value, { contentType: imageFile.value.type || 'image/jpeg' })
+            imageDownloadURL = await getDownloadURL(sRef)
           } catch (uploadError) {
-            if (uploadError.code === 'storage/unauthorized') {
-              alert('Permission denied: You may not be logged in or your session expired. Please log in again.')
-              router.push('/login')
-              saving.value = false
-              return
-            } else if (uploadError.code === 'storage/canceled') {
-              imageDownloadURL = null
-            } else if (uploadError.message?.includes('CORS') || uploadError.message?.includes('cors')) {
-              alert('Image upload failed due to CORS configuration. The item will be saved without an image.')
-              imageDownloadURL = null
-            } else {
-              alert(`Image upload failed: ${uploadError.message || uploadError.code || 'Unknown error'}. The item will be saved without an image.`)
-              imageDownloadURL = null
+            console.error('Image upload error:', uploadError)
+            alert('Image upload failed. Saving without uploaded image.')
+            imageDownloadURL = null
+          }
+        }
+
+        // If no explicit image, attempt collage generation for Outfit
+        if (!imageDownloadURL && currentType.value === 'Outfit') {
+          const itemUrls = selectedItems.value.map(it => it.imageUrl).filter(Boolean)
+          if (itemUrls.length > 0) {
+            try {
+              const dataUrl = await generateCollageFromUrls(itemUrls, 1200) // larger for upload
+              if (dataUrl) {
+                // upload dataUrl string
+                const fileName = `${Date.now()}-collage.png`
+                const storagePath = `users/${currentUser.value.uid}/outfits/${fileName}`
+                const sRef = storageRef(storage, storagePath)
+                // uploadString used to upload data URL
+                await currentUser.value.getIdToken(true)
+                await uploadString(sRef, dataUrl, 'data_url')
+                imageDownloadURL = await getDownloadURL(sRef)
+              }
+            } catch (err) {
+              console.error('Collage generation/upload failed', err)
             }
           }
         }
@@ -587,31 +687,23 @@ export default {
           updatedAt: serverTimestamp(),
           favorite: false
         }
-        
+
         if (currentType.value === 'Clothing') {
           itemData.category = formData.value.category
+          itemData.brand = formData.value.brand || ''
+          itemData.size = formData.value.size || ''
         }
 
         if (currentType.value === 'Outfit') {
-          itemData.clothingItemIds = selectedItems.value.length > 0 
-            ? selectedItems.value.map(item => item.id) 
-            : []
-          itemData.itemDetails = selectedItems.value.length > 0 
-            ? selectedItems.value 
-            : []
+          itemData.clothingItemIds = selectedItems.value.length > 0 ? selectedItems.value.map(i => i.id) : []
+          itemData.itemDetails = selectedItems.value.length > 0 ? selectedItems.value : []
         }
 
         const collectionName = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
         await addDoc(collection(db, 'users', currentUser.value.uid, collectionName), itemData)
-        
+
         alert(`${currentType.value} saved successfully!`)
-        
-        if (currentType.value === 'Outfit') {
-          router.push('/app/outfits')
-        } else {
-          router.push('/app/clothing')
-        }
-        
+        router.push(currentType.value === 'Outfit' ? '/app/outfits' : '/app/clothing')
       } catch (error) {
         console.error('Error saving item:', error)
         alert(`Failed to save item: ${error.message || 'Unknown error'}.`)
@@ -619,10 +711,6 @@ export default {
         saving.value = false
       }
     }
-
-    onMounted(() => {
-      loadAvailableItems()
-    })
 
     return {
       currentType,
@@ -641,10 +729,12 @@ export default {
       events,
       fileInput,
       isFormValid,
-      availableSizes,
       selectedSeason,
       selectedColor,
       selectedEvent,
+      availableSizes,
+      collagePreviewEnabled,
+      collagePreviewUrl,
       addSeason,
       addColor,
       addEvent,
@@ -664,8 +754,11 @@ export default {
       isItemSelected,
       removeFromOutfit,
       confirmItemSelection,
-      saveItem
+      saveItem,
+      regeneratePreview
     }
   }
 }
 </script>
+
+

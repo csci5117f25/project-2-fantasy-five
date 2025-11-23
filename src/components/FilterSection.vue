@@ -65,7 +65,8 @@ export default {
         'top': 'Top',
         'bottom': 'Bottom',
         'shoe': 'Shoes',
-        'accessory': 'Accessory'
+        'accessory': 'Accessory', 
+        'dress': 'Dress'
       }
       return categoryLabels[option] || option
     }

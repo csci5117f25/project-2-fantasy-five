@@ -54,7 +54,7 @@
                     class="editable-username text-muted d-block" 
                     contenteditable
                     @blur="saveUsername"
-                  >@{{ userProfile.username || 'username' }}</span>
+                  >{{ userProfile.username || 'username' }}</span>
                 </div>
 
                 <!-- Bio -->
@@ -253,7 +253,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurrentUser } from 'vuefire'
-import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { db, storage, auth } from '../firebase.js';
