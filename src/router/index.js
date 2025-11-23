@@ -11,24 +11,24 @@ const routes = [
       title: 'Closet Cloud - Track Your Style'
     }
   },
-  // {
-  //   path: '/login',
-  //   name: 'Login',
-  //   component: () => import('@/views/LoginView.vue'),
-  //   meta: { 
-  //     requiresAuth: false,
-  //     title: 'Login - Closet Cloud'
-  //   }
-  // },
-  // {
-  //   path: '/signup',
-  //   name: 'SignUp',
-  //   component: () => import('@/views/SignUpView.vue'),
-  //   meta: { 
-  //     requiresAuth: false,
-  //     title: 'Sign Up - Closet Cloud'
-  //   }
-  // },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { 
+      requiresAuth: false,
+      title: 'Login - Closet Cloud'
+    }
+  },
+  {
+    path: '/signup',
+    name: 'SignUp',
+    component: () => import('@/views/SignUpView.vue'),
+    meta: { 
+      requiresAuth: false,
+      title: 'Sign Up - Closet Cloud'
+    }
+  },
   {
     path: '/app',
     name: 'MainLayout',
@@ -63,14 +63,14 @@ const routes = [
         title: 'Virtual Try-On - Closet Cloud'
        }
       },
-    //   {
-    //     path: 'profile',
-    //     name: 'Profile',
-    //     component: () => import('@/views/ProfileView.vue'),
-    //     meta: { 
-    //       title: 'Profile - Closet Cloud'
-    //     }
-    //   },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/ProfileView.vue'),
+        meta: { 
+          title: 'Profile - Closet Cloud'
+        }
+      },
       {
         path: 'create',
         name: 'Create',
@@ -88,11 +88,27 @@ const routes = [
         }
       },
       {
+        path: 'clothing/:id/edit',
+        name: 'EditClothing',
+        component: () => import('@/views/EditClothingView.vue'),
+        meta: { 
+          title: 'Edit Clothing - Closet Cloud'
+        }
+      },
+      {
         path: 'outfits/:id',
         name: 'OutfitDetail',
         component: () => import('@/views/OutfitDetail.vue'),
         meta: { 
           title: 'Outfit Details - Closet Cloud'
+        }
+      },
+      {
+        path: 'outfits/:id/edit',
+        name: 'EditOutfit',
+        component: () => import('@/views/EditOutfitView.vue'),
+        meta: { 
+          title: 'Edit Outfit - Closet Cloud'
         }
       }
     ]
@@ -101,7 +117,8 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    redirect: '/'
+    component: () => import('@/views/NotFound.vue'),
+    // redirect: '/'
   }
 ]
 

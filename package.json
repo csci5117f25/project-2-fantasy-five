@@ -14,9 +14,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@mdi/font": "^7.4.47",
-    "@motionone/vue": "^10.16.4",
-    "cloudinary": "^2.8.0",
+    "@splidejs/vue-splide": "^0.6.12",
+    "bootstrap": "^5.3.8",
     "firebase": "^12.6.0",
     "motion": "^12.23.24",
     "motion-v": "^1.7.4",
@@ -24,6 +23,7 @@
     "vue-router": "^4.6.3",
     "vue-slick": "^1.2.0",
     "vue-slick-carousel": "^1.0.5",
+    "vue3-carousel": "^0.17.0",
     "vuefire": "^3.2.2",
     "vuetify": "^3.10.11"
   },

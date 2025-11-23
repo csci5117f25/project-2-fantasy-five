@@ -1,27 +1,24 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import firebaseApp from './firebase'
+import { VueFire, VueFireAuth } from 'vuefire'
 
-import 'vuetify/styles'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
-import { aliases, mdi } from 'vuetify/iconsets/mdi'
-import '@mdi/font/css/materialdesignicons.css'
 
-export const vuetify = createVuetify({
-    components,
-    directives,
-    icons: {
-        defaultSet: 'mdi',
-        aliases,
-        sets: { mdi }
-    }
-})
+// bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 const app = createApp(App)
 
-app.use(vuetify)
+app.use(
+  VueFire,
+  {
+    firebaseApp,
+    modules: [VueFireAuth()]
+  }
+)
+
 app.use(router)
 
 app.mount('#app')
