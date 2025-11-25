@@ -4,7 +4,7 @@
     import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
-    import { ref, computed, onMounted, onUnmounted } from 'vue';
+    import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
@@ -17,6 +17,7 @@
     const randomBottom = ref(0)
     const randomShoe = ref(0)
     const randomHat = ref(0)
+    const addHeadware = ref(false)
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -27,6 +28,9 @@
         itemsToShow: 1,
         wrapAround: true
     }
+
+   
+
 
     const headware = useCollection(() => {
         if(!user.value) return null
@@ -60,6 +64,12 @@
         return query(collection(doc(db, 'users', user.value.uid), 'clothingItems'), 
                     where('category', '==', 'accessory'))
     })
+
+     const carousels = ref([
+        { items: headware, model: randomHat, condition: addHeadware},
+        { items: tops, model: randomTop, condition: true },
+        { items: bottoms, model: randomBottom, condition: isTop },
+        { items: shoes, model: randomShoe, condition: true }])
 
     // const getClothing = useCollection(() => {
     //     if(!user.value) return null
@@ -186,6 +196,10 @@
             alert("Failed to save outfit")
         }
     }
+
+    const toggleHead = () => {
+        addHeadware.value = !addHeadware.value
+    }
 </script>
 
 <template>
@@ -204,16 +218,11 @@
 
         <!-- MAIN CAROUSELS -->
         <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-        <div v-for="(carouselData, index) in [
-            { items: headware, model: randomHat },
-            { items: tops, model: randomTop },
-            { items: bottoms, model: randomBottom, condition: isTop },
-            { items: shoes, model: randomShoe }
-        ]" :key="index" v-show="!carouselData.condition || carouselData.condition === true" class="carousel-wrapper">
+        <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
             <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-            <Slide v-for="image in carouselData.items" :key="image.id">
-                <img :src="image.imageUrl" class="carousel-img"/>
-            </Slide>
+                <Slide v-for="image in carouselData.items" :key="image.id">
+                    <img :src="image.imageUrl" class="carousel-img"/>
+                </Slide>
             <template #addons>
                 <Navigation class="carousel-nav"/>
             </template>
@@ -239,6 +248,8 @@
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
         <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
+        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
         <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
         <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
