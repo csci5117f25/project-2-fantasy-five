@@ -3,10 +3,12 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Edit Outfit</h2>
-      <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
+      <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
+          Edit Outfit
+       </h2>
+      <!-- <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
         {{ saving ? 'Saving...' : 'Save Changes' }}
-      </button>
+      </button> -->
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -158,36 +160,50 @@
     </form>
     </div>
 
-    <!-- Item Selector Modal -->
-    <div v-if="showItemSelector" class="modal d-block" tabindex="-1" @click="showItemSelector = false">
-      <div class="modal-dialog modal-dialog-scrollable" @click.stop>
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Select Clothing Items</h5>
-            <button type="button" class="btn-close" @click="showItemSelector = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-2">
-              <div
-                v-for="item in availableItems"
-                :key="item.id"
-                class="col-4 text-center border p-2 rounded"
-                :class="{ 'border-primary': isItemSelected(item) }"
-                @click="toggleItemSelection(item)"
-                style="cursor:pointer"
-              >
-                <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1" alt="">
-                <div v-else class="fs-3 mb-1">👕</div>
-                <div class="small">{{ item.name || item.title }}</div>
+    <Teleport to="body">
+      <!-- Item Selector Modal -->
+      <div 
+        v-if="showItemSelector" 
+        class="modal fade show d-block custom-fixed-modal" 
+        tabindex="-1" 
+        @click="showItemSelector = false"
+        style="background: rgba(0,0,0,0.45);"
+      >
+        <div class="modal-dialog modal-dialog-scrollable" @click.stop>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Select Clothing Items</h5>
+              <button type="button" class="btn-close" @click="showItemSelector = false"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div
+                  v-for="item in availableItems"
+                  :key="item.id"
+                  class="col-4 text-center border p-2 rounded"
+                  :class="{ 'border-primary': isItemSelected(item) }"
+                  @click="toggleItemSelection(item)"
+                  style="cursor:pointer"
+                >
+                  <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1">
+                  <div v-else class="fs-3 mb-1">👕</div>
+                  <div class="small">{{ item.name || item.title }}</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
+              <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            </div>
           </div>
         </div>
       </div>
+    </Teleport>
+
+    <div>
+      <button class="btn btn-primary float-end" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
     </div>
 
     <!-- Hidden file input -->
@@ -241,7 +257,7 @@ export default {
 
     const isFormValid = computed(() => formData.value.title.trim() !== '')
 
-    const collagePreviewEnabled = ref(true)
+    const collagePreviewEnabled = ref(false)
     const collagePreviewUrl = ref(null)
 
     const loadAvailableItems = async () => {
@@ -614,7 +630,7 @@ export default {
           updatedAt: serverTimestamp()
         })
 
-        alert('Outfit updated successfully!')
+        // alert('Outfit updated successfully!')
         router.push(`/app/outfits/${outfitId}`)
       } catch(error){
         console.error('Error updating outfit:',error)
@@ -670,5 +686,25 @@ export default {
 }
 </script>
 
+<style scoped> 
+.custom-fixed-modal {
+  position: fixed !important;
+  inset: 0 !important;
 
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 
+  z-index: 9999 !important;
+}
+
+.custom-fixed-modal .modal-dialog {
+  margin: 0 !important; 
+  max-height: 90vh;
+}
+
+.custom-fixed-modal .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+</style>

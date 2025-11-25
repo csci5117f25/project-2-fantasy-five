@@ -3,10 +3,9 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Add New {{ currentType }}</h2>
-      <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveItem">
-        {{ saving ? 'Saving...' : 'Save' }}
-      </button>
+        <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
+          Add New {{ currentType }}
+        </h2>
     </div>
 
     <!-- Type Selector -->
@@ -168,9 +167,11 @@
         </div>
       </div>
 
-      <div class="form-check form-switch mb-2">
+      <div v-if="currentType === 'Outfit'" class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
-        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+        <label class="form-check-label" for="collagePreviewToggle">
+          Show collage preview
+        </label>
       </div>
 
       <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
@@ -204,37 +205,51 @@
       </div>
     </form>
 
-    <!-- Item Selector Modal -->
-    <div v-if="showItemSelector" class="modal d-block" tabindex="-1" @click="showItemSelector = false">
-      <div class="modal-dialog modal-dialog-scrollable" @click.stop>
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Select Clothing Items</h5>
-            <button type="button" class="btn-close" @click="showItemSelector = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-2">
-              <div
-                v-for="item in availableItems"
-                :key="item.id"
-                class="col-4 text-center border p-2 rounded"
-                :class="{ 'border-primary': isItemSelected(item) }"
-                @click="toggleItemSelection(item)"
-                style="cursor:pointer"
-              >
-                <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1" alt="">
-                <div v-else class="fs-3 mb-1">👕</div>
-                <div class="small">{{ item.name || item.title }}</div>
+    <Teleport to="body">
+      <!-- Item Selector Modal -->
+      <div 
+        v-if="showItemSelector" 
+        class="modal fade show d-block custom-fixed-modal" 
+        tabindex="-1" 
+        @click="showItemSelector = false"
+        style="background: rgba(0,0,0,0.45);"
+      >
+        <div class="modal-dialog modal-dialog-scrollable" @click.stop>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Select Clothing Items</h5>
+              <button type="button" class="btn-close" @click="showItemSelector = false"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div
+                  v-for="item in availableItems"
+                  :key="item.id"
+                  class="col-4 text-center border p-2 rounded"
+                  :class="{ 'border-primary': isItemSelected(item) }"
+                  @click="toggleItemSelection(item)"
+                  style="cursor:pointer"
+                >
+                  <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1">
+                  <div v-else class="fs-3 mb-1">👕</div>
+                  <div class="small">{{ item.name || item.title }}</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
+              <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            </div>
           </div>
         </div>
       </div>
+    </Teleport>
+    <div>
+      <button class="btn btn-primary float-end" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
     </div>
+
 
     <!-- Hidden file input -->
     <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
@@ -300,7 +315,7 @@ export default {
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
 
-    const collagePreviewEnabled = ref(true) // UI should allow toggling this
+    const collagePreviewEnabled = ref(false) // UI should allow toggling this
     const collagePreviewUrl = ref(null)      // data URL for preview
 
     const isFormValid = computed(() => {
@@ -702,7 +717,7 @@ export default {
         const collectionName = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
         await addDoc(collection(db, 'users', currentUser.value.uid, collectionName), itemData)
 
-        alert(`${currentType.value} saved successfully!`)
+        // alert(`${currentType.value} saved successfully!`)
         router.push(currentType.value === 'Outfit' ? '/app/outfits' : '/app/clothing')
       } catch (error) {
         console.error('Error saving item:', error)
@@ -761,4 +776,25 @@ export default {
 }
 </script>
 
+<style scoped> 
+.custom-fixed-modal {
+  position: fixed !important;
+  inset: 0 !important;
 
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+
+  z-index: 9999 !important;
+}
+
+.custom-fixed-modal .modal-dialog {
+  margin: 0 !important; 
+  max-height: 90vh;
+}
+
+.custom-fixed-modal .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+</style>

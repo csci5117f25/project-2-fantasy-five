@@ -3,10 +3,13 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Edit Clothing Item</h2>
-      <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
+      <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
+          Edit Clothing Item
+      </h2>
+      <!-- <h2 class="mb-0">Edit Clothing Item</h2> -->
+      <!-- <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
         {{ saving ? 'Saving...' : 'Save Changes' }}
-      </button>
+      </button> -->
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -146,6 +149,12 @@
         </div>
       </div>
     </form>
+    </div>
+
+    <div>
+      <button class="btn btn-primary float-end" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
     </div>
 
     <!-- Hidden file input -->
@@ -471,7 +480,7 @@ export default {
           updatedAt: serverTimestamp()
         })
         
-        alert('Clothing item updated successfully!')
+        // alert('Clothing item updated successfully!')
         router.push(`/app/clothing/${itemId}`)
         
       } catch (error) {
