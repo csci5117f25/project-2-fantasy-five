@@ -17,6 +17,7 @@
     const randomBottom = ref(0)
     const randomShoe = ref(0)
     const randomHat = ref(0)
+    const addHeadware = ref(false)
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -65,7 +66,7 @@
     })
 
      const carousels = ref([
-        { items: headware, model: randomHat, condition: true },
+        { items: headware, model: randomHat, condition: addHeadware},
         { items: tops, model: randomTop, condition: true },
         { items: bottoms, model: randomBottom, condition: isTop },
         { items: shoes, model: randomShoe, condition: true }])
@@ -195,6 +196,10 @@
             alert("Failed to save outfit")
         }
     }
+
+    const toggleHead = () => {
+        addHeadware.value = !addHeadware.value
+    }
 </script>
 
 <template>
@@ -243,6 +248,8 @@
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
         <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
+        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
         <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
         <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
