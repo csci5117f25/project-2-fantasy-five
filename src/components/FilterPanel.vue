@@ -155,7 +155,6 @@ export default {
 </script>
 
 <style scoped>
-/* Mobile Filter Button */
 .mobile-filter-btn {
   background-color: #f8f9fa; 
   color: #333;             
@@ -171,20 +170,20 @@ export default {
   transform: scale(1.03);
 }
 
-/* Filter count badge */
 .filter-badge {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 0.85rem;
 }
 
-/* Desktop panel shift slightly left */
 .desktop-filter-panel {
+  position: sticky; /* sticky relative to main content */
+  top: 80px; /* adjust to navbar height (approx 3rem + padding) */
+  z-index: 1050; /* below navbar */
   margin-left: -1rem;
   max-width: 280px;
 }
 
-/* Mobile offcanvas bigger for better visibility */
 .mobile-offcanvas {
   height: 85vh;
   border-radius: 1.5rem 1.5rem 0 0;

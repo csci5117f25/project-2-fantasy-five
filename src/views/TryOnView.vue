@@ -1,11 +1,12 @@
 <script setup>
     import 'vue3-carousel/carousel.css'
     import { Carousel, Slide, Navigation } from 'vue3-carousel';
-    import { db } from '@/firebase';
+    import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
     import { ref, computed, onMounted, onUnmounted } from 'vue';
-    import FilterPanel from '@/components/FilterPanel.vue';
+    import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+    // import FilterPanel from '@/components/FilterPanel.vue';
    
     const user = useCurrentUser()
     const extra = ref(0) 
@@ -60,10 +61,10 @@
                     where('category', '==', 'accessory'))
     })
 
-    const getClothing = useCollection(() => {
-        if(!user.value) return null
-        return collection(doc(db, 'users', user.value.uid), 'clothingItems')
-    })
+    // const getClothing = useCollection(() => {
+    //     if(!user.value) return null
+    //     return collection(doc(db, 'users', user.value.uid), 'clothingItems')
+    // })
 
     const randomize = () => {
         if(tops.value?.length) {
@@ -80,218 +81,262 @@
         }
     }
 
+    async function loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => resolve(img)
+            img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
+            img.src = url
+        })
+    }
+
+    function drawImageContain(ctx, img, dx, dy, dWidth, dHeight) {
+        const iw = img.width
+        const ih = img.height
+        const scale = Math.min(dWidth / iw, dHeight / ih)
+        const sw = iw * scale
+        const sh = ih * scale
+        const sx = dx + (dWidth - sw) / 2
+        const sy = dy + (dHeight - sh) / 2
+        ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
+    async function generateCollageFromUrls(urls = [], size = 800) {
+        const imagesToUse = urls.slice(0, 4)
+        if (imagesToUse.length === 0) return null
+
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, size, size)
+
+        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
+
+        if (imgs.length === 1) {
+            drawImageContain(ctx, imgs[0], 0, 0, size, size)
+        } else if (imgs.length === 2) {
+            const w = Math.floor(size / 2)
+            drawImageContain(ctx, imgs[0], 0, 0, w, size)
+            drawImageContain(ctx, imgs[1], w, 0, size - w, size)
+        } else if (imgs.length === 3) {
+            const half = Math.floor(size / 2)
+            drawImageContain(ctx, imgs[0], 0, 0, half, half)
+            drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+            drawImageContain(ctx, imgs[2], 0, half, size, size - half)
+        } else {
+            const half = Math.floor(size / 2)
+            drawImageContain(ctx, imgs[0], 0, 0, half, half)
+            drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+            drawImageContain(ctx, imgs[2], 0, half, half, size - half)
+            drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+        }
+
+        return canvas.toDataURL('image/png')
+    }
+
     const saveOutfit = async () => {
         if(!user.value) return
 
-        const outfit = []
+        const outfitDetails = []
 
-        if(tops.value?.length) {
-            outfit.push(tops.value[randomTop.value].id)
-        }
-        if(bottoms.value?.length) {
-            outfit.push(bottoms.value[randomBottom.value].id)
-        }
-        if(shoes.value?.length) {
-            outfit.push(shoes.value[randomShoe.value].id)
-        }
-        if(headware.value?.length) {
-            outfit.push(headware.value[randomHat.value].id)
-        }
+        if(tops.value?.length) outfitDetails.push(tops.value[randomTop.value])
+        if(bottoms.value?.length) outfitDetails.push(bottoms.value[randomBottom.value])
+        if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
+        if(headware.value?.length) outfitDetails.push(headware.value[randomHat.value])
         if(extra.value > 0 && accessories.value?.length) {
-            outfit.push(...accessories.value.slice(0, extra.value).map(acc => acc.id))
-        }   
+            outfitDetails.push(...accessories.value.slice(0, extra.value))
+        }
 
         try {
-            const outfitsRef = collection(doc(db, 'users', user.value.uid), 'outfits')
+            const urls = outfitDetails.map(item => item.imageUrl).filter(Boolean)
+            let collageUrl = null
 
+            if(urls.length > 0){
+                const dataUrl = await generateCollageFromUrls(urls, 1200)
+                if(dataUrl){
+                    const fileName = `${Date.now()}-collage.png`
+                    const storagePath = `users/${user.value.uid}/outfits/${fileName}`
+                    const fRef = storageRef(storage, storagePath)
+                    await uploadString(fRef, dataUrl, 'data_url')
+                    collageUrl = await getDownloadURL(fRef)
+                }
+            }
+
+            const outfitsRef = collection(doc(db, 'users', user.value.uid), 'outfits')
             await addDoc(outfitsRef, {
-                outfit,
+                name: 'New Outfit',
+                description: '',
+                itemDetails: outfitDetails.map(item => ({
+                    id: item.id,
+                    name: item.name || '',
+                    category: item.category,
+                    imageUrl: item.imageUrl || '',
+                    colors: item.colors || []
+                })),
+                imageUrl: collageUrl || '',
                 createdAt: serverTimestamp()
             })
 
             alert("Successfully Saved")
         } catch (err) {
             console.log("Error Saving", err)
+            alert("Failed to save outfit")
         }
     }
-
 </script>
 
 <template>
-    <div v-if="!isMobile" class="row g-4">
-        <!-- <div class="content-layout">
-            <div class="col-lg-3">
-                <div class="sticky-top" style="top: 1rem">
-                    <FilterPanel style="width: 200px;"/>
-                </div>
-            </div>
- -->
-            <div class="all-content">
-                <div class="main-outfit">
-                    <Carousel v-bind="config" style="width:300px;" v-model="randomHat">
-                        <Slide v-for="image in headware" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:300px;" v-model="randomTop">
-                        <Slide v-for="image in tops" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:300px;" v-show="isTop === true" v-model="randomBottom">
-                        <Slide v-for="image in bottoms" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:300px;" v-model="randomShoe">
-                        <Slide v-for="image in shoes" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                </div>
-                <div class="accessories">
-                    <Carousel v-bind="config" style="width:250px;" v-for="count in extra">
-                        <Slide v-for="image in accessories" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                </div>
-                <div class="buttons">
-                    <button @click="randomize">Random</button>
-                    <button @click="extra++">Add On</button>
-                    <button @click="extra--" v-show="extra >= 1">Remove Add On</button>
-                    <button @click="saveOutfit">Save</button>
-                </div>
-            </div>
-     <!--    </div> -->
-    </div> 
+    <div class="container-fluid p-4 d-flex flex-column align-items-center">
 
-    <div v-else>
-        <!-- <FilterPanel /> -->
-        <div class="all-content-mobile">
-            <div class="carousel-layout">
-                <div class="main-outfit-mobile">
-                    <Carousel v-bind="config" style="width:250px;" v-model="randomHat">
-                        <Slide v-for="image in headware" :key="image.id" >
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:250px;" v-model="randomTop">
-                        <Slide v-for="image in tops" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:250px;" v-show="isTop === true" v-model="randomBottom">
-                        <Slide v-for="image in bottoms" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                    <Carousel v-bind="config" style="width:250px;" v-model="randomShoe">
-                        <Slide v-for="image in shoes" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                </div>
-                <div class="accessories">
-                    <Carousel v-bind="config" style="width:250px;" v-for="count in extra">
-                        <Slide v-for="image in accessories" :key="image.id">
-                            <img :src="image.imageUrl"/>
-                        </Slide>
-                        <template #addons>
-                            <Navigation />
-                        </template>
-                    </Carousel>
-                </div>
-            </div>
-            <div class="buttons-mobile">
-                <button @click="randomize">Random</button>
-                <button @click="extra++">Add On</button>
-                <button @click="extra--" v-show="extra >= 1">Remove Add On</button>
-                <button @click="saveOutfit">Save</button>
-            </div>
+    <!-- ACTION BUTTONS mobile -->
+    <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
+        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
+        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
+        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+    </div>
+
+    <!-- MAIN CAROUSELS + ADD ONS -->
+    <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
+
+        <!-- MAIN CAROUSELS -->
+        <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
+        <div v-for="(carouselData, index) in [
+            { items: headware, model: randomHat },
+            { items: tops, model: randomTop },
+            { items: bottoms, model: randomBottom, condition: isTop },
+            { items: shoes, model: randomShoe }
+        ]" :key="index" v-show="!carouselData.condition || carouselData.condition === true" class="carousel-wrapper">
+            <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
+            <Slide v-for="image in carouselData.items" :key="image.id">
+                <img :src="image.imageUrl" class="carousel-img"/>
+            </Slide>
+            <template #addons>
+                <Navigation class="carousel-nav"/>
+            </template>
+            </Carousel>
         </div>
+        </div>
+
+        <!-- ACCESSORIES -->
+        <div class="accessories-wrapper d-flex flex-wrap justify-content-center gap-3 mt-3 mt-lg-0" v-if="extra > 0">
+        <div v-for="count in extra" :key="count" class="carousel-container" style="max-width:200px;">
+            <Carousel v-bind="config" class="carousel-outline">
+            <Slide v-for="image in accessories" :key="image.id">
+                <img :src="image.imageUrl" class="carousel-img"/>
+            </Slide>
+            <template #addons>
+                <Navigation class="carousel-nav"/>
+            </template>
+            </Carousel>
+        </div>
+        </div>
+    </div>
+
+    <!-- DESKTOP BUTTONS -->
+    <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
+        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
+        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
+        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+    </div>
+
     </div>
 </template>
 
 <style scoped>
-    img {
-        width: auto;
-        height: 200px;
-    }
-    
-    .all-content {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        height: 800px;
-        align-items: center;
-    }
+.carousel-layout {
+  width: 100%;
+  gap: 20px;
+}
 
-    .main-outfit-mobile {
-        display: flex;
-        flex-direction: column;
-    }
+.main-carousel-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+}
 
-    .buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 40px;
-    }
+.carousel-wrapper, .carousel-container {
+  width: 100%;
+  max-width: 320px;
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  position: relative;
+}
 
-    .accesories {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .content-layout {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        z-index: 0;
-    }
+.carousel-img {
+  width: auto;
+  height: 180px;
+  object-fit: contain;
+}
 
-    .all-content-mobile {
-        display: flex;
-        flex-direction: column;
-    }
+.carousel-nav button {
+  font-size: 1.6rem;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: rgba(0,0,0,0.6);
+  color: #fff;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
 
-    .carousel-layout {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        justify-content: center;
-        align-items: center;
-    }
+.carousel-nav.prev {
+  left: -55px;
+}
 
-    .buttons-mobile {
-        display: flex;
-        flex-direction: column;
-    }
+.carousel-nav.next {
+  right: -55px;
+}
+
+.carousel-nav button:hover {
+  background-color: rgba(0,0,0,0.85);
+}
+
+.action-buttons button {
+  font-weight: 600;
+  width: 100%;
+}
+
+.desktop-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  max-width: 200px;
+}
+
+@media(max-width:1024px) {
+  .carousel-layout {
+    flex-direction: column; 
+    align-items: center;
+  }
+
+  .main-carousel-wrapper {
+    gap: 10px;
+    align-items: center;
+  }
+
+  .accessories-wrapper {
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .action-buttons {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 20;
+    background-color: #fff;
+    padding: 10px 0;
+    align-items: center;
+  }
+}
 </style>

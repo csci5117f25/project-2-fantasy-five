@@ -80,6 +80,13 @@ export default {
 </script>
 
 <style scoped>
+.app-header {
+  position: sticky; /* already sticky */
+  top: 0;
+  z-index: 1100; /* higher than filter panel */
+  background-color: #fff; /* make sure background covers content */
+}
+
 .nav-link.active {
   color: #000 !important;
   font-weight: 700;
