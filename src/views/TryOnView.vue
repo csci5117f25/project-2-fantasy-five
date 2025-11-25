@@ -4,7 +4,7 @@
     import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
-    import { ref, computed, onMounted, onUnmounted } from 'vue';
+    import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
@@ -27,6 +27,9 @@
         itemsToShow: 1,
         wrapAround: true
     }
+
+   
+
 
     const headware = useCollection(() => {
         if(!user.value) return null
@@ -60,6 +63,12 @@
         return query(collection(doc(db, 'users', user.value.uid), 'clothingItems'), 
                     where('category', '==', 'accessory'))
     })
+
+     const carousels = ref([
+        { items: headware, model: randomHat, condition: true },
+        { items: tops, model: randomTop, condition: true },
+        { items: bottoms, model: randomBottom, condition: isTop },
+        { items: shoes, model: randomShoe, condition: true }])
 
     // const getClothing = useCollection(() => {
     //     if(!user.value) return null
@@ -204,16 +213,11 @@
 
         <!-- MAIN CAROUSELS -->
         <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-        <div v-for="(carouselData, index) in [
-            { items: headware, model: randomHat },
-            { items: tops, model: randomTop },
-            { items: bottoms, model: randomBottom, condition: isTop },
-            { items: shoes, model: randomShoe }
-        ]" :key="index" v-show="!carouselData.condition || carouselData.condition === true" class="carousel-wrapper">
+        <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
             <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-            <Slide v-for="image in carouselData.items" :key="image.id">
-                <img :src="image.imageUrl" class="carousel-img"/>
-            </Slide>
+                <Slide v-for="image in carouselData.items" :key="image.id">
+                    <img :src="image.imageUrl" class="carousel-img"/>
+                </Slide>
             <template #addons>
                 <Navigation class="carousel-nav"/>
             </template>
