@@ -1,10 +1,10 @@
-<script setup>
-    import 'vue3-carousel/carousel.css'
+<script setup>   
+   import 'vue3-carousel/carousel.css'
     import { Carousel, Slide, Navigation } from 'vue3-carousel';
     import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
-    import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+    import { ref, computed, onMounted, onUnmounted } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
@@ -28,9 +28,6 @@
         itemsToShow: 1,
         wrapAround: true
     }
-
-   
-
 
     const headware = useCollection(() => {
         if(!user.value) return null
@@ -200,6 +197,12 @@
     const toggleHead = () => {
         addHeadware.value = !addHeadware.value
     }
+
+    const removeAddOn = (index) => {
+        if (extra.value > 0) {
+            extra.value--
+        }
+    }
 </script>
 
 <template>
@@ -209,7 +212,6 @@
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
         <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
         <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
     </div>
 
@@ -218,30 +220,37 @@
 
         <!-- MAIN CAROUSELS -->
         <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-        <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
-            <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-                <Slide v-for="image in carouselData.items" :key="image.id">
-                    <img :src="image.imageUrl" class="carousel-img"/>
-                </Slide>
-            <template #addons>
-                <Navigation class="carousel-nav"/>
-            </template>
-            </Carousel>
-        </div>
+            <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
+                <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
+                    <Slide v-for="image in carouselData.items" :key="image.id">
+                        <div class="image-container">
+                            <img :src="image.imageUrl" class="carousel-img"/>
+                        </div>
+                    </Slide>
+                <template #addons>
+                    <Navigation class="carousel-nav"/>
+                </template>
+                </Carousel>
+            </div>
         </div>
 
         <!-- ACCESSORIES -->
-        <div class="accessories-wrapper d-flex flex-wrap justify-content-center gap-3 mt-3 mt-lg-0" v-if="extra > 0">
-        <div v-for="count in extra" :key="count" class="carousel-container" style="max-width:200px;">
-            <Carousel v-bind="config" class="carousel-outline">
-            <Slide v-for="image in accessories" :key="image.id">
-                <img :src="image.imageUrl" class="carousel-img"/>
-            </Slide>
-            <template #addons>
-                <Navigation class="carousel-nav"/>
-            </template>
-            </Carousel>
-        </div>
+        <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
+            <div v-for="count in extra" :key="count" class="carousel-container accessory-item">
+                <div class="remove-btn" @click="removeAddOn(count)">
+                    <span class="remove-x">×</span>
+                </div>
+                <Carousel v-bind="config" class="carousel-outline">
+                <Slide v-for="image in accessories" :key="image.id">
+                    <div class="image-container">
+                        <img :src="image.imageUrl" class="carousel-img"/>
+                    </div>
+                </Slide>
+                <template #addons>
+                    <Navigation class="carousel-nav"/>
+                </template>
+                </Carousel>
+            </div>
         </div>
     </div>
 
@@ -251,7 +260,6 @@
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
         <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
         <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
     </div>
 
@@ -262,6 +270,9 @@
 .carousel-layout {
   width: 100%;
   gap: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 .main-carousel-wrapper {
@@ -269,6 +280,9 @@
   flex-direction: column;
   gap: 15px;
   align-items: center;
+  flex: 0 0 auto;        
+  min-width: 320px;   
+  max-width: 320px; 
 }
 
 .carousel-wrapper, .carousel-container {
@@ -281,9 +295,20 @@
   position: relative;
 }
 
+.image-container {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .carousel-img {
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
-  height: 180px;
+  height: auto;
   object-fit: contain;
 }
 
@@ -323,6 +348,36 @@
   max-width: 200px;
 }
 
+.remove-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-weight: bold;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  background-color: #c82333;
+  transform: scale(1.1);
+}
+
+.remove-x {
+  display: block;
+  margin-top: -2px;
+}
+
 @media(max-width:1024px) {
   .carousel-layout {
     flex-direction: column; 
@@ -336,8 +391,12 @@
 
   .accessories-wrapper {
     margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: 15px;
   }
+
 
   .action-buttons {
     position: sticky;
@@ -349,5 +408,23 @@
     padding: 10px 0;
     align-items: center;
   }
+  
+  .accessory-item {
+    max-width: 200px;
+    margin: 0 auto;  
+  }
+}
+
+.accessories-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start; 
+  gap: 15px;
+}
+
+.accessory-item {
+  position: relative;
+  max-width: 200px; 
+  flex: 0 0 auto;  
 }
 </style>
