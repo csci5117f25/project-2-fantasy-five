@@ -3,7 +3,7 @@
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
+      <button class="btn btn-outline-secondary" @click="goBack">← Back</button>
 
       <div class="btn-group">
         <button class="btn btn-light" @click="toggleFavorite">
@@ -263,8 +263,19 @@ export default {
         alert('Failed to delete item')
       }
     }
+    
+    const goBack = () => {
+      const from = router.options.history.state.back
+
+      if (from && from.includes('/edit')) {
+        router.push('/app/clothing')
+      } else {
+        router.back()
+      }
+    }
 
     return {
+      goBack,
       item,
       getCategoryIcon,
       getCategoryLabel,
