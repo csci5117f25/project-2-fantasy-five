@@ -360,7 +360,8 @@ export default {
       showAlert,
       alertMessage,
       showAlertModal,
-      showDeleteConfirm
+      showDeleteConfirm, 
+      deleteOutfit
     }
   }
 }

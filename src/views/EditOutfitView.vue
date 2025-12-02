@@ -128,9 +128,21 @@
         <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
       </div>
 
-      <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
-        <div class="border rounded p-2 d-inline-block">
-          <img :src="collagePreviewUrl" alt="Collage preview" style="max-width: 300px; height: auto;">
+      <div v-if="collagePreviewEnabled && selectedItems.length > 0" class="mb-3 text-center">
+        <div 
+          class="d-grid gap-2 border rounded p-2 justify-items-center align-items-center"
+          :style="{
+            gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(selectedItems.length))}, 1fr)`,
+            gridAutoRows: '1fr'
+          }"
+        >
+          <img 
+            v-for="item in selectedItems" 
+            :key="item.id" 
+            :src="item.imageUrl" 
+            alt="Item preview" 
+            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+          >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
       </div>
@@ -362,13 +374,14 @@ export default {
     }
 
     async function generateCollageFromUrls(urls = [], size = 800) {
-      const imagesToUse = urls.slice(0, 4)
+      const imagesToUse = urls.slice(0, 6)
       if (imagesToUse.length === 0) return null
 
       const canvas = document.createElement('canvas')
       canvas.width = size
       canvas.height = size
       const ctx = canvas.getContext('2d')
+
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, size, size)
 
@@ -385,12 +398,29 @@ export default {
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, size, size - half)
-      } else {
+      } else if (imgs.length === 4) {
         const half = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, half, size - half)
         drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+      } else if (imgs.length === 5) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, size - 2*third, size - half)
+      } else if (imgs.length === 6) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, third, size - half)
+        drawImageContain(ctx, imgs[5], 0, size - half, size, half)
       }
 
       return canvas.toDataURL('image/png')

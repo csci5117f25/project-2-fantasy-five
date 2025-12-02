@@ -1,5 +1,5 @@
 <script setup>   
-   import 'vue3-carousel/carousel.css'
+    import 'vue3-carousel/carousel.css'
     import { Carousel, Slide, Navigation } from 'vue3-carousel';
     import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
@@ -18,6 +18,7 @@
     const randomBottom = ref(0)
     const randomShoe = ref(0)
     const randomHat = ref(0)
+    const randomAccessories = ref([])
     const addHeadware = ref(false)
     const showAlert = ref(false)
     const alertMessage = ref('')
@@ -71,7 +72,7 @@
     })
 
      const carousels = ref([
-        { items: headware, model: randomHat, condition: addHeadware},
+        // { items: headware, model: randomHat, condition: addHeadware},
         { items: tops, model: randomTop, condition: true },
         { items: bottoms, model: randomBottom, condition: isTop },
         { items: shoes, model: randomShoe, condition: true }])
@@ -93,6 +94,14 @@
         }
         if(headware.value?.length) {
             randomHat.value = Math.floor(Math.random() * headware.value.length)
+        }
+
+        randomAccessories.value = []
+        if(accessories.value?.length) {
+            for(let i = 0; i < extra.value; i++)
+            {
+                randomAccessories.value.push(Math.floor(Math.random() * accessories.value.length))
+            }
         }
     }
 
@@ -158,9 +167,9 @@
         const outfitDetails = []
 
         if(tops.value?.length) outfitDetails.push(tops.value[randomTop.value])
-        if(bottoms.value?.length) outfitDetails.push(bottoms.value[randomBottom.value])
+        if(bottoms.value?.length && isTop.value) outfitDetails.push(bottoms.value[randomBottom.value])
         if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
-        if(headware.value?.length) outfitDetails.push(headware.value[randomHat.value])
+        if(headware.value?.length && addHeadware.value) outfitDetails.push(headware.value[randomHat.value])
         if(extra.value > 0 && accessories.value?.length) {
             outfitDetails.push(...accessories.value.slice(0, extra.value))
         }
@@ -218,9 +227,29 @@
 
     <!-- ACTION BUTTONS mobile -->
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
-        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
+    </div>
+
+    <!-- HEADWEAR -->
+    <div v-if="addHeadware" class="carousel-container accessory-item mt-3"  style="margin-bottom: 15px; position: relative;">
+        <div class="remove-btn" @click="toggleHead">
+            <span class="remove-x">×</span>
+        </div>
+
+        <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
+            <Slide v-for="image in headware" :key="image.id">
+                <div class="image-container">
+                    <img :src="image.imageUrl" class="carousel-img"/>
+                </div>
+            </Slide>
+            <template #addons>
+                <Navigation class="carousel-nav"/>
+            </template>
+        </Carousel>
     </div>
 
     <!-- MAIN CAROUSELS + ADD ONS -->
@@ -248,8 +277,8 @@
                 <div class="remove-btn" @click="removeAddOn(count)">
                     <span class="remove-x">×</span>
                 </div>
-                <Carousel v-bind="config" class="carousel-outline">
-                <Slide v-for="image in accessories" :key="image.id">
+                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[count - 1]">
+                <Slide v-for="image in accessories" :key="image.id" >
                     <div class="image-container">
                         <img :src="image.imageUrl" class="carousel-img"/>
                     </div>
@@ -264,11 +293,11 @@
 
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
-        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
-        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
-        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
-        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
     </div>
 
     </div>
@@ -350,6 +379,18 @@
 .action-buttons button {
   font-weight: 600;
   width: 100%;
+  background-color: #f8f9fa; 
+  color: #333;             
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #ddd;
+}
+
+.action-buttons button:hover {
+  background-color: #e9ecef;
+  transform: scale(1.03);
 }
 
 .desktop-buttons {
@@ -415,7 +456,6 @@
     left: 0;
     width: 100%;
     z-index: 20;
-    background-color: #fff;
     padding: 10px 0;
     align-items: center;
   }

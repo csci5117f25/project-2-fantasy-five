@@ -174,9 +174,21 @@
         </label>
       </div>
 
-      <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
-        <div class="border rounded p-2 d-inline-block">
-          <img :src="collagePreviewUrl" alt="Collage preview" style="max-width: 300px; height: auto;">
+      <div v-if="collagePreviewEnabled && selectedItems.length > 0" class="mb-3 text-center">
+        <div 
+          class="d-grid gap-2 border rounded p-2 justify-items-center align-items-center"
+          :style="{
+            gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(selectedItems.length))}, 1fr)`,
+            gridAutoRows: '1fr'
+          }"
+        >
+          <img 
+            v-for="item in selectedItems" 
+            :key="item.id" 
+            :src="item.imageUrl" 
+            alt="Item preview" 
+            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+          >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
       </div>
@@ -353,17 +365,12 @@ export default {
 
     onMounted(loadAvailableItems)
 
-    /* -------------------------
-       Collage generation utils
-       ------------------------- */
-
-    // Load an image URL into an HTMLImageElement with crossOrigin
     function loadImage(url) {
       return new Promise((resolve, reject) => {
         const img = new Image()
         img.crossOrigin = 'anonymous' // required to draw remote images
         img.onload = () => resolve(img)
-        img.onerror = (e) => reject(new Error(`Failed to load image: ${url}`))
+        img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
         img.src = url
       })
     }
@@ -380,10 +387,8 @@ export default {
       ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
-    // Generates a square collage dataURL (PNG). Up to 4 items (2x2), fallback layouts for 1 & 2 & 3.
     async function generateCollageFromUrls(urls = [], size = 800) {
-      // keep at most 4
-      const imagesToUse = urls.slice(0, 4)
+      const imagesToUse = urls.slice(0, 6)
       if (imagesToUse.length === 0) return null
 
       const canvas = document.createElement('canvas')
@@ -391,55 +396,61 @@ export default {
       canvas.height = size
       const ctx = canvas.getContext('2d')
 
-      // background
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, size, size)
 
-      // load all images
       const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
 
-      // layout logic:
       if (imgs.length === 1) {
-        // single image fills with padding
         drawImageContain(ctx, imgs[0], 0, 0, size, size)
       } else if (imgs.length === 2) {
-        // split vertically: left and right
         const w = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, w, size)
         drawImageContain(ctx, imgs[1], w, 0, size - w, size)
       } else if (imgs.length === 3) {
-        // top left, top right, bottom full
         const half = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, size, size - half)
-      } else {
-        // 4 images 2x2 grid
+      } else if (imgs.length === 4) {
         const half = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, half, size - half)
         drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+      } else if (imgs.length === 5) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, size - 2*third, size - half)
+      } else if (imgs.length === 6) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, third, size - half)
+        drawImageContain(ctx, imgs[5], 0, size - half, size, half)
       }
 
-      // export PNG dataURL
       return canvas.toDataURL('image/png')
     }
 
-    // regenerate preview (if enabled)
+
     const regeneratePreview = async () => {
       if (!collagePreviewEnabled.value) {
         collagePreviewUrl.value = null
         return
       }
 
-      // try to use selectedItems' imageUrl first, otherwise fallback to single uploaded image
       const urls = []
-      // prefer item.imageUrl from selectedItems
       selectedItems.value.forEach(it => {
         if (it && it.imageUrl) urls.push(it.imageUrl)
       })
-      // if no item urls, but user has uploaded a preview image (imageUrl), use that single image
       if (urls.length === 0 && imageUrl.value) urls.push(imageUrl.value)
 
       if (urls.length === 0) {
@@ -455,19 +466,13 @@ export default {
       }
     }
 
-    // Watch selectedItems changes to update preview live
     watch(selectedItems, () => {
       if (collagePreviewEnabled.value) regeneratePreview()
     }, { deep: true })
 
-    // Watch upload changes (user uploaded image)
     watch(imageUrl, () => {
       if (collagePreviewEnabled.value) regeneratePreview()
     })
-
-    /* -------------------------
-       Image / File helpers & CRUD
-       ------------------------- */
 
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
