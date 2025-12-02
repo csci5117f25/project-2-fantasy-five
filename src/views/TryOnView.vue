@@ -242,43 +242,45 @@
         <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
     </div>
 
-    <!-- HEADWEAR -->
-    <div v-if="addHeadware" class="carousel-container accessory-item mt-3"  style="margin-bottom: 15px; position: relative;">
-        <div class="remove-btn" @click="toggleHead">
-            <span class="remove-x">×</span>
-        </div>
-
-        <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
-            <Slide v-for="image in headware" :key="image.id">
-                <div class="image-container">
-                    <img :src="image.imageUrl" class="carousel-img"/>
-                </div>
-            </Slide>
-            <template #addons>
-                <Navigation class="carousel-nav"/>
-            </template>
-        </Carousel>
-    </div>
-
-    <!-- MAIN CAROUSELS + ADD ONS -->
     <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
 
-        <!-- MAIN CAROUSELS -->
-        <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-            <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
-                <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-                    <Slide v-for="image in carouselData.items" :key="image.id">
+        <div class="main-carousel-column d-flex flex-column align-items-center gap-3">
+
+            <!-- HEADWEAR -->
+            <div v-if="addHeadware" class="carousel-wrapper" style="margin-bottom: 15px; position: relative; max-width: 320px;">
+                <div class="remove-btn" @click="toggleHead">
+                    <span class="remove-x">×</span>
+                </div>
+
+                <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
+                    <Slide v-for="image in headware" :key="image.id">
                         <div class="image-container">
                             <img :src="image.imageUrl" class="carousel-img"/>
                         </div>
                     </Slide>
-                <template #addons>
-                    <Navigation class="carousel-nav"/>
-                </template>
+                    <template #addons>
+                        <Navigation class="carousel-nav"/>
+                    </template>
                 </Carousel>
             </div>
-        </div>
 
+            <!-- MAIN CAROUSELS -->
+            <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
+                <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
+                    <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
+                        <Slide v-for="image in carouselData.items" :key="image.id">
+                            <div class="image-container">
+                                <img :src="image.imageUrl" class="carousel-img"/>
+                            </div>
+                        </Slide>
+                        <template #addons>
+                            <Navigation class="carousel-nav"/>
+                        </template>
+                    </Carousel>
+                </div>
+            </div>
+        </div>
+        
         <!-- ACCESSORIES -->
         <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
             <div v-for="(id, index) in accessoryIdx" :key="id" class="carousel-container accessory-item">
