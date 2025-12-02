@@ -208,6 +208,9 @@
 
     <!-- Hidden file input -->
     <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
+
+    <!-- Alert Modal -->
+    <AlertModal v-model:show="showAlert" :message="alertMessage" />
   </div>
 </template>
 
@@ -219,9 +222,13 @@ import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
 
 export default {
   name: 'EditOutfitView',
+  components: {
+    AlertModal
+  },
   setup() {
     const router = useRouter()
     const route = useRoute()
@@ -238,6 +245,13 @@ export default {
     const selectedSeason = ref('')
     const selectedColor = ref('')
     const selectedEvent = ref('')
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
 
     const formData = ref({
       title: '',
@@ -281,7 +295,7 @@ export default {
         const outfitRef = doc(db, 'users', currentUser.value.uid, 'outfits', outfitId)
         const outfitDoc = await getDoc(outfitRef)
         if (!outfitDoc.exists()) {
-          alert('Outfit not found')
+          showAlertModal('Outfit not found')
           router.push('/app/outfits')
           return
         }
@@ -315,7 +329,7 @@ export default {
         loading.value = false
       } catch (error) {
         console.error('Error loading outfit:', error)
-        alert('Failed to load outfit. Please try again.')
+        showAlertModal('Failed to load outfit. Please try again.')
         router.push('/app/outfits')
       }
     }
@@ -414,7 +428,7 @@ export default {
     /* ---------------- image upload & file handling ---------------- */
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera not available. Please upload an image instead.')
+        showAlertModal('Camera not available. Please upload an image instead.')
         return
       }
       try {
@@ -448,7 +462,7 @@ export default {
         }
       } catch (error) {
         console.error('Camera error:', error)
-        alert('Could not access camera. Please upload an image instead.')
+        showAlertModal('Could not access camera. Please upload an image instead.')
       }
     }
 
@@ -581,9 +595,9 @@ export default {
     /* ---------------- Save outfit ---------------- */
     const saveItem = async () => {
       try {
-        if (!isFormValid.value) { alert('Please fill in the outfit name.'); return }
+        if (!isFormValid.value) { showAlertModal('Please fill in the outfit name.'); return }
         saving.value = true
-        if (!currentUser.value) { alert('You must be logged in to save items.'); router.push('/login'); saving.value=false; return }
+        if (!currentUser.value) { showAlertModal('You must be logged in to save items.'); router.push('/login'); saving.value=false; return }
 
         const outfitId = route.params.id
         let imageDownloadURL = null
@@ -634,7 +648,7 @@ export default {
         router.push(`/app/outfits/${outfitId}`)
       } catch(error){
         console.error('Error updating outfit:',error)
-        alert(`Failed to update outfit: ${error.message||'Unknown error'}.`)
+        showAlertModal(`Failed to update outfit: ${error.message||'Unknown error'}.`)
       } finally{
         saving.value=false
       }
@@ -680,7 +694,10 @@ export default {
       saveItem,
       collagePreviewEnabled,
       collagePreviewUrl,
-      regeneratePreview
+      regeneratePreview,
+      showAlert,
+      alertMessage,
+      showAlertModal
     }
   }
 }
