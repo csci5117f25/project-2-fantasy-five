@@ -18,6 +18,7 @@
     const randomShoe = ref(0)
     const randomHat = ref(0)
     const addHeadware = ref(false)
+    const randomAccessories = ref([])
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -88,6 +89,14 @@
         }
         if(headware.value?.length) {
             randomHat.value = Math.floor(Math.random() * headware.value.length)
+        }
+        
+        randomAccessories.value = []
+        if(accessories.value?.length) {
+            for(let i = 0; i < extra.value; i++)
+            {
+                randomAccessories.value.push(Math.floor(Math.random() * accessories.value.length))
+            }
         }
     }
 
@@ -233,13 +242,13 @@
         <!-- ACCESSORIES -->
         <div class="accessories-wrapper d-flex flex-wrap justify-content-center gap-3 mt-3 mt-lg-0" v-if="extra > 0">
         <div v-for="count in extra" :key="count" class="carousel-container" style="max-width:200px;">
-            <Carousel v-bind="config" class="carousel-outline">
-            <Slide v-for="image in accessories" :key="image.id">
-                <img :src="image.imageUrl" class="carousel-img"/>
-            </Slide>
-            <template #addons>
-                <Navigation class="carousel-nav"/>
-            </template>
+            <Carousel v-bind="config" class="carousel-outline" v-model="randomAccessories[count - 1]">
+                <Slide v-for="image in accessories" :key="image.id">
+                    <img :src="image.imageUrl" class="carousel-img"/>
+                </Slide>
+                <template #addons>
+                    <Navigation class="carousel-nav"/>
+                </template>
             </Carousel>
         </div>
         </div>
