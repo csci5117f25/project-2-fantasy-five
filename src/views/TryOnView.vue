@@ -171,7 +171,12 @@
         if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
         if(headware.value?.length && addHeadware.value) outfitDetails.push(headware.value[randomHat.value])
         if(extra.value > 0 && accessories.value?.length) {
-            outfitDetails.push(...accessories.value.slice(0, extra.value))
+            for(let i = 0; i < extra.value; i++) {
+                const idx = randomAccessories.value[i]
+                if(idx != undefined) {
+                    outfitDetails.push(accessories.value[idx])
+                }
+            }
         }
 
         try {
