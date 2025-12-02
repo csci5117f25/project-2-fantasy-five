@@ -4,7 +4,7 @@
     import { db, storage } from '@/firebase';
     import { useCollection, useCurrentUser } from 'vuefire';
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
-    import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+    import { ref, computed, onMounted, onUnmounted } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
@@ -29,9 +29,6 @@
         itemsToShow: 1,
         wrapAround: true
     }
-
-   
-
 
     const headware = useCollection(() => {
         if(!user.value) return null
@@ -90,7 +87,7 @@
         if(headware.value?.length) {
             randomHat.value = Math.floor(Math.random() * headware.value.length)
         }
-        
+
         randomAccessories.value = []
         if(accessories.value?.length) {
             for(let i = 0; i < extra.value; i++)
@@ -162,9 +159,9 @@
         const outfitDetails = []
 
         if(tops.value?.length) outfitDetails.push(tops.value[randomTop.value])
-        if(bottoms.value?.length) outfitDetails.push(bottoms.value[randomBottom.value])
+        if(bottoms.value?.length && isTop.value) outfitDetails.push(bottoms.value[randomBottom.value])
         if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
-        if(headware.value?.length) outfitDetails.push(headware.value[randomHat.value])
+        if(headware.value?.length && addHeadware.value) outfitDetails.push(headware.value[randomHat.value])
         if(extra.value > 0 && accessories.value?.length) {
             outfitDetails.push(...accessories.value.slice(0, extra.value))
         }
