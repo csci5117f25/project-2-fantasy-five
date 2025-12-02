@@ -163,7 +163,12 @@
         if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
         if(headware.value?.length && addHeadware.value) outfitDetails.push(headware.value[randomHat.value])
         if(extra.value > 0 && accessories.value?.length) {
-            outfitDetails.push(...accessories.value.slice(0, extra.value))
+            for(let i = 0; i < extra.value; i++) {
+                const idx = randomAccessories.value[i]
+                if(idx != undefined) {
+                    outfitDetails.push(accessories.value[idx])
+                }
+            }
         }
 
         try {
@@ -214,8 +219,10 @@
     <!-- ACTION BUTTONS mobile -->
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
         <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
+        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0)">Add On</button>
+        <button class="btn btn-lg btn-warning" @click="extra--; randomAccessories.splice(-1, 1)" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
     </div>
 
@@ -256,8 +263,8 @@
         <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
         <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
-        <button class="btn btn-lg btn-success" @click="extra++">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--" v-show="extra >= 1">Remove Add On</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0)">Add On</button>
+        <button class="btn btn-lg btn-warning" @click="extra--; randomAccessories.splice(-1, 1)" v-show="extra >= 1">Remove Add On</button>
         <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
     </div>
 
