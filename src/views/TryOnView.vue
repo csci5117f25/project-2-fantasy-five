@@ -6,6 +6,7 @@
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
     import { ref, computed, onMounted, onUnmounted } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+    import AlertModal from '@/components/AlertModal.vue';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
     const user = useCurrentUser()
@@ -18,6 +19,13 @@
     const randomShoe = ref(0)
     const randomHat = ref(0)
     const addHeadware = ref(false)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+        alertMessage.value = message
+        showAlert.value = true
+    }
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -187,10 +195,10 @@
                 createdAt: serverTimestamp()
             })
 
-            alert("Successfully Saved")
+            showAlertModal("Successfully Saved")
         } catch (err) {
             console.log("Error Saving", err)
-            alert("Failed to save outfit")
+            showAlertModal("Failed to save outfit")
         }
     }
 
@@ -264,6 +272,9 @@
     </div>
 
     </div>
+
+    <!-- Alert Modal -->
+    <AlertModal v-model:show="showAlert" :message="alertMessage" />
 </template>
 
 <style scoped>

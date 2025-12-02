@@ -168,18 +168,35 @@
     </div>
     <p class="mt-3 text-muted">Loading outfit details...</p>
   </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+  <!-- Confirm Delete Modal -->
+  <ConfirmModal 
+    v-model:show="showDeleteConfirm" 
+    title="Delete Outfit"
+    message="Are you sure you want to delete this outfit? This action cannot be undone."
+    @confirm="deleteOutfit"
+  />
 </template>
 
 
 <script>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 export default {
   name: 'OutfitDetail',
+  components: {
+    AlertModal,
+    ConfirmModal
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -191,6 +208,14 @@ export default {
     })
 
     const outfit = useDocument(outfitRef)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    const showDeleteConfirm = ref(false)
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
 
     const getCategoryIcon = (category) => {
       const icons = { 
@@ -285,7 +310,7 @@ export default {
         })
       } catch (error) {
         console.error('Error updating favorite:', error)
-        alert('Failed to update favorite. Please try again.')
+        showAlertModal('Failed to update favorite. Please try again.')
       }
     }
 
@@ -294,9 +319,7 @@ export default {
     }
 
     const confirmDelete = () => {
-      if (confirm('Are you sure you want to delete this outfit? This action cannot be undone.')) {
-        deleteOutfit()
-      }
+      showDeleteConfirm.value = true
     }
 
     const deleteOutfit = async () => {
@@ -306,7 +329,7 @@ export default {
         router.push('/app/outfits')
       } catch (error) {
         console.error('Error deleting outfit:', error)
-        alert('Failed to delete outfit. Please try again.')
+        showAlertModal('Failed to delete outfit. Please try again.')
       }
     }
 
@@ -333,7 +356,11 @@ export default {
       navigateToClothingItem,
       toggleFavorite,
       editOutfit,
-      confirmDelete
+      confirmDelete,
+      showAlert,
+      alertMessage,
+      showAlertModal,
+      showDeleteConfirm
     }
   }
 }
