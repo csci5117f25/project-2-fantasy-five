@@ -4,9 +4,9 @@
     <!-- Header -->
     <header class="app-header sticky-top bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
       <!-- Brand -->
-      <div class="brand">
+      <router-link to="/app/outfits" class="brand text-decoration-none">
         <h1 class="h5 fw-bold m-0 text-dark">CLOSET CLOUD</h1>
-      </div>
+      </router-link>
 
       <!-- Nav -->
       <nav class="main-nav d-flex gap-3">
@@ -91,6 +91,15 @@ export default {
   color: #000 !important;
   font-weight: 700;
   border-bottom: 2px solid #000;
+}
+
+.brand {
+  cursor: pointer;
+}
+
+.brand:hover h1 {
+  opacity: 0.7;
+  transition: opacity 0.2s;
 }
 
 .fab {
