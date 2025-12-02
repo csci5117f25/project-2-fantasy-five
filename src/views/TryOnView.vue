@@ -19,6 +19,7 @@
     const randomShoe = ref(0)
     const randomHat = ref(0)
     const randomAccessories = ref([])
+    const accessoryIdx = ref([])
     const addHeadware = ref(false)
     const showAlert = ref(false)
     const alertMessage = ref('')
@@ -223,6 +224,8 @@
     const removeAddOn = (index) => {
         if (extra.value > 0) {
             extra.value--
+            accessoryIdx.value.splice(index, 1)
+            randomAccessories.value.splice(index, 1)
         }
     }
 </script>
@@ -233,7 +236,7 @@
     <!-- ACTION BUTTONS mobile -->
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
         <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
         <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
         <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
@@ -278,11 +281,11 @@
 
         <!-- ACCESSORIES -->
         <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
-            <div v-for="count in extra" :key="count" class="carousel-container accessory-item">
-                <div class="remove-btn" @click="removeAddOn(count)">
+            <div v-for="(id, index) in accessoryIdx" :key="id" class="carousel-container accessory-item">
+                <div class="remove-btn" @click="removeAddOn(index)">
                     <span class="remove-x">×</span>
                 </div>
-                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[count - 1]">
+                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[index]">
                 <Slide v-for="image in accessories" :key="image.id" >
                     <div class="image-container">
                         <img :src="image.imageUrl" class="carousel-img"/>
@@ -299,7 +302,7 @@
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
         <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
         <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
         <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
