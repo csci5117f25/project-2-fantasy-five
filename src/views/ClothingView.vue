@@ -145,6 +145,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
 </template>
 
 <script>
@@ -154,16 +157,25 @@ import { useCollection, useCurrentUser } from 'vuefire'
 import { collection, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import FilterPanel from '@/components/FilterPanel.vue'
+import AlertModal from '@/components/AlertModal.vue'
 
 export default {
   name: 'ClothingView',
-  components: { FilterPanel },
+  components: { FilterPanel, AlertModal },
   setup() {
     const router = useRouter()
     const isMobile = ref(false)
     const activeFilters = ref({})
 
     const currentUser = useCurrentUser()
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
+    
     const clothingQuery = computed(() => {
       if (!currentUser.value) {
         // Return a query to a non-existent collection to avoid VueFire errors
@@ -232,7 +244,7 @@ export default {
         })
       } catch (error) { 
         console.error('Error toggling favorite:', error)
-        alert('Failed to update favorite. Please try again.')
+        showAlertModal('Failed to update favorite. Please try again.')
       }
     }
 
@@ -253,7 +265,10 @@ export default {
       getCategoryLabel,
       toggleFavorite,
       navigateToItem,
-      navigateToCreate
+      navigateToCreate,
+      showAlert,
+      alertMessage,
+      showAlertModal
     }
   }
 }

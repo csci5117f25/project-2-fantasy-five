@@ -3,7 +3,7 @@
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
+      <button class="btn btn-outline-secondary" @click="goBack">← Back</button>
 
       <div class="btn-group">
         <button class="btn btn-light" @click="toggleFavorite">
@@ -128,17 +128,34 @@
     </div>
     <p class="mt-3 text-muted">Loading item details...</p>
   </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+  <!-- Confirm Delete Modal -->
+  <ConfirmModal 
+    v-model:show="showDeleteConfirm" 
+    title="Delete Item"
+    message="Are you sure you want to delete this item? This action cannot be undone."
+    @confirm="deleteItem"
+  />
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 export default {
   name: 'ClothingDetail',
+  components: {
+    AlertModal,
+    ConfirmModal
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -150,6 +167,14 @@ export default {
     })
 
     const item = useDocument(itemRef)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    const showDeleteConfirm = ref(false)
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
 
     const getCategoryIcon = (category) => {
       const icons = { 
@@ -248,9 +273,7 @@ export default {
     }
 
     const confirmDelete = () => {
-      if (confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
-        deleteItem()
-      }
+      showDeleteConfirm.value = true
     }
 
     const deleteItem = async () => {
@@ -260,11 +283,22 @@ export default {
         router.push('/app/clothing')
       } catch (error) {
         console.error('Error deleting item:', error)
-        alert('Failed to delete item')
+        showAlertModal('Failed to delete item')
+      }
+    }
+    
+    const goBack = () => {
+      const from = router.options.history.state.back
+
+      if (from && from.includes('/edit')) {
+        router.push('/app/clothing')
+      } else {
+        router.back()
       }
     }
 
     return {
+      goBack,
       item,
       getCategoryIcon,
       getCategoryLabel,
@@ -275,7 +309,12 @@ export default {
       formatDate,
       toggleFavorite,
       editItem,
-      confirmDelete
+      confirmDelete,
+      showAlert,
+      alertMessage,
+      showAlertModal,
+      showDeleteConfirm, 
+      deleteItem
     }
   }
 }

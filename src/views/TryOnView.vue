@@ -1,4 +1,4 @@
-<script setup>
+<script setup>   
     import 'vue3-carousel/carousel.css'
     import { Carousel, Slide, Navigation } from 'vue3-carousel';
     import { db, storage } from '@/firebase';
@@ -6,6 +6,7 @@
     import { collection, query, addDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
     import { ref, computed, onMounted, onUnmounted } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+    import AlertModal from '@/components/AlertModal.vue';
     // import FilterPanel from '@/components/FilterPanel.vue';
    
     const user = useCurrentUser()
@@ -17,8 +18,15 @@
     const randomBottom = ref(0)
     const randomShoe = ref(0)
     const randomHat = ref(0)
-    const addHeadware = ref(false)
     const randomAccessories = ref([])
+    const addHeadware = ref(false)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+        alertMessage.value = message
+        showAlert.value = true
+    }
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -64,7 +72,7 @@
     })
 
      const carousels = ref([
-        { items: headware, model: randomHat, condition: addHeadware},
+        // { items: headware, model: randomHat, condition: addHeadware},
         { items: tops, model: randomTop, condition: true },
         { items: bottoms, model: randomBottom, condition: isTop },
         { items: shoes, model: randomShoe, condition: true }])
@@ -201,15 +209,21 @@
                 createdAt: serverTimestamp()
             })
 
-            alert("Successfully Saved")
+            showAlertModal("Successfully Saved")
         } catch (err) {
             console.log("Error Saving", err)
-            alert("Failed to save outfit")
+            showAlertModal("Failed to save outfit")
         }
     }
 
     const toggleHead = () => {
         addHeadware.value = !addHeadware.value
+    }
+
+    const removeAddOn = (index) => {
+        if (extra.value > 0) {
+            extra.value--
+        }
     }
 </script>
 
@@ -218,12 +232,29 @@
 
     <!-- ACTION BUTTONS mobile -->
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
-        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
-        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
-        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
-        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0)">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--; randomAccessories.splice(-1, 1)" v-show="extra >= 1">Remove Add On</button>
-        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
+    </div>
+
+    <!-- HEADWEAR -->
+    <div v-if="addHeadware" class="carousel-container accessory-item mt-3"  style="margin-bottom: 15px; position: relative;">
+        <div class="remove-btn" @click="toggleHead">
+            <span class="remove-x">×</span>
+        </div>
+
+        <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
+            <Slide v-for="image in headware" :key="image.id">
+                <div class="image-container">
+                    <img :src="image.imageUrl" class="carousel-img"/>
+                </div>
+            </Slide>
+            <template #addons>
+                <Navigation class="carousel-nav"/>
+            </template>
+        </Carousel>
     </div>
 
     <!-- MAIN CAROUSELS + ADD ONS -->
@@ -231,50 +262,62 @@
 
         <!-- MAIN CAROUSELS -->
         <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-        <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
-            <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-                <Slide v-for="image in carouselData.items" :key="image.id">
-                    <img :src="image.imageUrl" class="carousel-img"/>
-                </Slide>
-            <template #addons>
-                <Navigation class="carousel-nav"/>
-            </template>
-            </Carousel>
-        </div>
+            <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
+                <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
+                    <Slide v-for="image in carouselData.items" :key="image.id">
+                        <div class="image-container">
+                            <img :src="image.imageUrl" class="carousel-img"/>
+                        </div>
+                    </Slide>
+                <template #addons>
+                    <Navigation class="carousel-nav"/>
+                </template>
+                </Carousel>
+            </div>
         </div>
 
         <!-- ACCESSORIES -->
-        <div class="accessories-wrapper d-flex flex-wrap justify-content-center gap-3 mt-3 mt-lg-0" v-if="extra > 0">
-        <div v-for="count in extra" :key="count" class="carousel-container" style="max-width:200px;">
-            <Carousel v-bind="config" class="carousel-outline" v-model="randomAccessories[count - 1]">
-                <Slide v-for="image in accessories" :key="image.id">
-                    <img :src="image.imageUrl" class="carousel-img"/>
+        <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
+            <div v-for="count in extra" :key="count" class="carousel-container accessory-item">
+                <div class="remove-btn" @click="removeAddOn(count)">
+                    <span class="remove-x">×</span>
+                </div>
+                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[count - 1]">
+                <Slide v-for="image in accessories" :key="image.id" >
+                    <div class="image-container">
+                        <img :src="image.imageUrl" class="carousel-img"/>
+                    </div>
                 </Slide>
                 <template #addons>
                     <Navigation class="carousel-nav"/>
                 </template>
-            </Carousel>
-        </div>
+                </Carousel>
+            </div>
         </div>
     </div>
 
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
-        <button class="btn btn-lg btn-primary" @click="randomize">Random</button>
-        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">Add Headware</button>
-        <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button>
-        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0)">Add On</button>
-        <button class="btn btn-lg btn-warning" @click="extra--; randomAccessories.splice(-1, 1)" v-show="extra >= 1">Remove Add On</button>
-        <button class="btn btn-lg btn-dark" @click="saveOutfit">Save</button>
+        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
     </div>
 
     </div>
+
+    <!-- Alert Modal -->
+    <AlertModal v-model:show="showAlert" :message="alertMessage" />
 </template>
 
 <style scoped>
 .carousel-layout {
   width: 100%;
   gap: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 .main-carousel-wrapper {
@@ -282,6 +325,9 @@
   flex-direction: column;
   gap: 15px;
   align-items: center;
+  flex: 0 0 auto;        
+  min-width: 320px;   
+  max-width: 320px; 
 }
 
 .carousel-wrapper, .carousel-container {
@@ -294,9 +340,20 @@
   position: relative;
 }
 
+.image-container {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .carousel-img {
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
-  height: 180px;
+  height: auto;
   object-fit: contain;
 }
 
@@ -327,6 +384,18 @@
 .action-buttons button {
   font-weight: 600;
   width: 100%;
+  background-color: #f8f9fa; 
+  color: #333;             
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #ddd;
+}
+
+.action-buttons button:hover {
+  background-color: #e9ecef;
+  transform: scale(1.03);
 }
 
 .desktop-buttons {
@@ -334,6 +403,36 @@
   bottom: 20px;
   right: 20px;
   max-width: 200px;
+}
+
+.remove-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-weight: bold;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  background-color: #c82333;
+  transform: scale(1.1);
+}
+
+.remove-x {
+  display: block;
+  margin-top: -2px;
 }
 
 @media(max-width:1024px) {
@@ -349,8 +448,12 @@
 
   .accessories-wrapper {
     margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: 15px;
   }
+
 
   .action-buttons {
     position: sticky;
@@ -358,9 +461,26 @@
     left: 0;
     width: 100%;
     z-index: 20;
-    background-color: #fff;
     padding: 10px 0;
     align-items: center;
   }
+  
+  .accessory-item {
+    max-width: 200px;
+    margin: 0 auto;  
+  }
+}
+
+.accessories-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start; 
+  gap: 15px;
+}
+
+.accessory-item {
+  position: relative;
+  max-width: 200px; 
+  flex: 0 0 auto;  
 }
 </style>

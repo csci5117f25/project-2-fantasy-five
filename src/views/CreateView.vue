@@ -3,10 +3,9 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Add New {{ currentType }}</h2>
-      <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveItem">
-        {{ saving ? 'Saving...' : 'Save' }}
-      </button>
+        <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
+          Add New {{ currentType }}
+        </h2>
     </div>
 
     <!-- Type Selector -->
@@ -168,14 +167,28 @@
         </div>
       </div>
 
-      <div class="form-check form-switch mb-2">
+      <div v-if="currentType === 'Outfit'" class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
-        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+        <label class="form-check-label" for="collagePreviewToggle">
+          Show collage preview
+        </label>
       </div>
 
-      <div v-if="collagePreviewEnabled && collagePreviewUrl" class="mb-3 text-center">
-        <div class="border rounded p-2 d-inline-block">
-          <img :src="collagePreviewUrl" alt="Collage preview" style="max-width: 300px; height: auto;">
+      <div v-if="collagePreviewEnabled && selectedItems.length > 0" class="mb-3 text-center">
+        <div 
+          class="d-grid gap-2 border rounded p-2 justify-items-center align-items-center"
+          :style="{
+            gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(selectedItems.length))}, 1fr)`,
+            gridAutoRows: '1fr'
+          }"
+        >
+          <img 
+            v-for="item in selectedItems" 
+            :key="item.id" 
+            :src="item.imageUrl" 
+            alt="Item preview" 
+            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+          >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
       </div>
@@ -204,40 +217,57 @@
       </div>
     </form>
 
-    <!-- Item Selector Modal -->
-    <div v-if="showItemSelector" class="modal d-block" tabindex="-1" @click="showItemSelector = false">
-      <div class="modal-dialog modal-dialog-scrollable" @click.stop>
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Select Clothing Items</h5>
-            <button type="button" class="btn-close" @click="showItemSelector = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-2">
-              <div
-                v-for="item in availableItems"
-                :key="item.id"
-                class="col-4 text-center border p-2 rounded"
-                :class="{ 'border-primary': isItemSelected(item) }"
-                @click="toggleItemSelection(item)"
-                style="cursor:pointer"
-              >
-                <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1" alt="">
-                <div v-else class="fs-3 mb-1">👕</div>
-                <div class="small">{{ item.name || item.title }}</div>
+    <Teleport to="body">
+      <!-- Item Selector Modal -->
+      <div 
+        v-if="showItemSelector" 
+        class="modal fade show d-block custom-fixed-modal" 
+        tabindex="-1" 
+        @click="showItemSelector = false"
+        style="background: rgba(0,0,0,0.45);"
+      >
+        <div class="modal-dialog modal-dialog-scrollable" @click.stop>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Select Clothing Items</h5>
+              <button type="button" class="btn-close" @click="showItemSelector = false"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div
+                  v-for="item in availableItems"
+                  :key="item.id"
+                  class="col-4 text-center border p-2 rounded"
+                  :class="{ 'border-primary': isItemSelected(item) }"
+                  @click="toggleItemSelection(item)"
+                  style="cursor:pointer"
+                >
+                  <img v-if="item.imageUrl" :src="item.imageUrl" class="img-fluid rounded mb-1">
+                  <div v-else class="fs-3 mb-1">👕</div>
+                  <div class="small">{{ item.name || item.title }}</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" @click="showItemSelector = false">Cancel</button>
+              <button type="button" class="btn btn-primary" @click="confirmItemSelection">Add Selected</button>
+            </div>
           </div>
         </div>
       </div>
+    </Teleport>
+    <div>
+      <button class="btn btn-primary float-end" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
     </div>
+
 
     <!-- Hidden file input -->
     <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
+
+    <!-- Alert Modal -->
+    <AlertModal v-model:show="showAlert" :message="alertMessage" />
   </div>
 </template>
 
@@ -249,9 +279,13 @@ import { useCurrentUser } from 'vuefire'
 import { collection, addDoc, serverTimestamp, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
 
 export default {
   name: 'CreateView',
+  components: {
+    AlertModal
+  },
   setup() {
     const router = useRouter()
     const route = useRoute()
@@ -279,6 +313,13 @@ export default {
     const selectedSeason = ref('')
     const selectedColor = ref('')
     const selectedEvent = ref('')
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
 
     const formData = ref({
       title: '',
@@ -300,7 +341,7 @@ export default {
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
 
-    const collagePreviewEnabled = ref(true) // UI should allow toggling this
+    const collagePreviewEnabled = ref(false) // UI should allow toggling this
     const collagePreviewUrl = ref(null)      // data URL for preview
 
     const isFormValid = computed(() => {
@@ -324,17 +365,12 @@ export default {
 
     onMounted(loadAvailableItems)
 
-    /* -------------------------
-       Collage generation utils
-       ------------------------- */
-
-    // Load an image URL into an HTMLImageElement with crossOrigin
     function loadImage(url) {
       return new Promise((resolve, reject) => {
         const img = new Image()
         img.crossOrigin = 'anonymous' // required to draw remote images
         img.onload = () => resolve(img)
-        img.onerror = (e) => reject(new Error(`Failed to load image: ${url}`))
+        img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
         img.src = url
       })
     }
@@ -351,10 +387,8 @@ export default {
       ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
-    // Generates a square collage dataURL (PNG). Up to 4 items (2x2), fallback layouts for 1 & 2 & 3.
     async function generateCollageFromUrls(urls = [], size = 800) {
-      // keep at most 4
-      const imagesToUse = urls.slice(0, 4)
+      const imagesToUse = urls.slice(0, 6)
       if (imagesToUse.length === 0) return null
 
       const canvas = document.createElement('canvas')
@@ -362,55 +396,61 @@ export default {
       canvas.height = size
       const ctx = canvas.getContext('2d')
 
-      // background
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, size, size)
 
-      // load all images
       const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
 
-      // layout logic:
       if (imgs.length === 1) {
-        // single image fills with padding
         drawImageContain(ctx, imgs[0], 0, 0, size, size)
       } else if (imgs.length === 2) {
-        // split vertically: left and right
         const w = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, w, size)
         drawImageContain(ctx, imgs[1], w, 0, size - w, size)
       } else if (imgs.length === 3) {
-        // top left, top right, bottom full
         const half = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, size, size - half)
-      } else {
-        // 4 images 2x2 grid
+      } else if (imgs.length === 4) {
         const half = Math.floor(size / 2)
         drawImageContain(ctx, imgs[0], 0, 0, half, half)
         drawImageContain(ctx, imgs[1], half, 0, size - half, half)
         drawImageContain(ctx, imgs[2], 0, half, half, size - half)
         drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+      } else if (imgs.length === 5) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, size - 2*third, size - half)
+      } else if (imgs.length === 6) {
+        const third = Math.floor(size / 3)
+        const half = Math.floor(size / 2)
+        drawImageContain(ctx, imgs[0], 0, 0, half, half)
+        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+        drawImageContain(ctx, imgs[3], third, half, third, size - half)
+        drawImageContain(ctx, imgs[4], 2*third, half, third, size - half)
+        drawImageContain(ctx, imgs[5], 0, size - half, size, half)
       }
 
-      // export PNG dataURL
       return canvas.toDataURL('image/png')
     }
 
-    // regenerate preview (if enabled)
+
     const regeneratePreview = async () => {
       if (!collagePreviewEnabled.value) {
         collagePreviewUrl.value = null
         return
       }
 
-      // try to use selectedItems' imageUrl first, otherwise fallback to single uploaded image
       const urls = []
-      // prefer item.imageUrl from selectedItems
       selectedItems.value.forEach(it => {
         if (it && it.imageUrl) urls.push(it.imageUrl)
       })
-      // if no item urls, but user has uploaded a preview image (imageUrl), use that single image
       if (urls.length === 0 && imageUrl.value) urls.push(imageUrl.value)
 
       if (urls.length === 0) {
@@ -426,23 +466,17 @@ export default {
       }
     }
 
-    // Watch selectedItems changes to update preview live
     watch(selectedItems, () => {
       if (collagePreviewEnabled.value) regeneratePreview()
     }, { deep: true })
 
-    // Watch upload changes (user uploaded image)
     watch(imageUrl, () => {
       if (collagePreviewEnabled.value) regeneratePreview()
     })
 
-    /* -------------------------
-       Image / File helpers & CRUD
-       ------------------------- */
-
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera not available. Please upload an image instead.')
+        showAlertModal('Camera not available. Please upload an image instead.')
         return
       }
       try {
@@ -491,7 +525,7 @@ export default {
         }
       } catch (error) {
         console.error('Camera error:', error)
-        alert('Could not access camera. Please upload an image instead.')
+        showAlertModal('Could not access camera. Please upload an image instead.')
       }
     }
 
@@ -622,13 +656,13 @@ export default {
     const saveItem = async () => {
       try {
         if (!isFormValid.value) {
-          if (currentType.value === 'Outfit') alert('Please fill in the outfit name.')
-          else alert('Please fill in all required fields (name, category).')
+          if (currentType.value === 'Outfit') showAlertModal('Please fill in the outfit name.')
+          else showAlertModal('Please fill in all required fields (name, category).')
           return
         }
         saving.value = true
         if (!currentUser.value) {
-          alert('You must be logged in to save items.')
+          showAlertModal('You must be logged in to save items.')
           router.push('/login')
           return
         }
@@ -647,7 +681,7 @@ export default {
             imageDownloadURL = await getDownloadURL(sRef)
           } catch (uploadError) {
             console.error('Image upload error:', uploadError)
-            alert('Image upload failed. Saving without uploaded image.')
+            showAlertModal('Image upload failed. Saving without uploaded image.')
             imageDownloadURL = null
           }
         }
@@ -702,11 +736,11 @@ export default {
         const collectionName = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
         await addDoc(collection(db, 'users', currentUser.value.uid, collectionName), itemData)
 
-        alert(`${currentType.value} saved successfully!`)
+        // alert(`${currentType.value} saved successfully!`)
         router.push(currentType.value === 'Outfit' ? '/app/outfits' : '/app/clothing')
       } catch (error) {
         console.error('Error saving item:', error)
-        alert(`Failed to save item: ${error.message || 'Unknown error'}.`)
+        showAlertModal(`Failed to save item: ${error.message || 'Unknown error'}.`)
       } finally {
         saving.value = false
       }
@@ -755,10 +789,34 @@ export default {
       removeFromOutfit,
       confirmItemSelection,
       saveItem,
-      regeneratePreview
+      regeneratePreview,
+      showAlert,
+      alertMessage,
+      showAlertModal
     }
   }
 }
 </script>
 
+<style scoped> 
+.custom-fixed-modal {
+  position: fixed !important;
+  inset: 0 !important;
 
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+
+  z-index: 9999 !important;
+}
+
+.custom-fixed-modal .modal-dialog {
+  margin: 0 !important; 
+  max-height: 90vh;
+}
+
+.custom-fixed-modal .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+</style>

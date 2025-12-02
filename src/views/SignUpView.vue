@@ -108,8 +108,19 @@
                             </div>
 
                             <!-- Submit -->
-                            <button type="submit" class="btn btn-primary w-100">
-                                Create Account
+                            <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+                                {{ loading ? 'Creating Account...' : 'Create Account' }}
+                            </button>
+
+                            <!-- Divider -->
+                            <div class="my-3 text-center">
+                                <span class="text-muted">or</span>
+                            </div>
+
+                            <!-- Google Sign Up button -->
+                            <button type="button" class="btn btn-outline-secondary w-100" @click="handleGoogleSignUp" :disabled="loading">
+                                <i class="fab fa-google me-2"></i>
+                                Continue with Google
                             </button>
 
                             <div class="mt-3 text-center">
@@ -129,12 +140,22 @@
         </div>
     </div>
     </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
 </template>
 
 <script>
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
 
 export default {
     name: "SignUpView",
+    components: {
+        AlertModal
+    },
     data() {
         return {
             form: {
@@ -145,7 +166,10 @@ export default {
                 confirmPassword: "",
                 profilePicture: null
             },
-            errors: []
+            errors: [],
+            loading: false,
+            showAlert: false,
+            alertMessage: ''
         };
     },
     methods: {
@@ -209,10 +233,59 @@ export default {
                 fileInput.value = "";
             }
 
-            alert("all inputs valid; account data ready to send to server");
+            this.showAlertModal("all inputs valid; account data ready to send to server");
         },
         goToLogin() {
-           this.$router.push('login')
+           this.$router.push('/login')
+        },
+        showAlertModal(message) {
+            this.alertMessage = message
+            this.showAlert = true
+        },
+        async handleGoogleSignUp() {
+            this.errors = []
+            this.loading = true
+            try {
+                const provider = new GoogleAuthProvider()
+                const result = await signInWithPopup(auth, provider)
+                const user = result.user
+
+                // Check if user document exists, create if not
+                const userDocRef = doc(db, 'users', user.uid)
+                const userDoc = await getDoc(userDocRef)
+                
+                if (!userDoc.exists()) {
+                    // Create user document for new Google sign-up
+                    await setDoc(userDocRef, {
+                        userSettings: {
+                            name: user.displayName || '',
+                            username: user.email?.split('@')[0] || '',
+                            theme: 'system',
+                            profilePictureUrl: user.photoURL || null
+                        },
+                        userStats: {
+                            clothingCount: 0,
+                            outfitCount: 0
+                        },
+                        userMeasurements: {},
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    })
+                }
+
+                await this.$router.push('/app/outfits')
+            } catch (error) {
+                console.error('Google sign-up error:', error)
+                if (error.code === 'auth/popup-closed-by-user') {
+                    this.errors.push('Sign-up popup was closed.')
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    // User cancelled, no error needed
+                } else {
+                    this.errors.push('Failed to sign up with Google. Please try again.')
+                }
+            } finally {
+                this.loading = false
+            }
         }
     }
 };

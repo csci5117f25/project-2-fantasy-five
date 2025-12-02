@@ -3,10 +3,13 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="$router.back()">← Back</button>
-      <h2 class="mb-0">Edit Clothing Item</h2>
-      <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
+      <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
+          Edit Clothing Item
+      </h2>
+      <!-- <h2 class="mb-0">Edit Clothing Item</h2> -->
+      <!-- <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
         {{ saving ? 'Saving...' : 'Save Changes' }}
-      </button>
+      </button> -->
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -148,8 +151,17 @@
     </form>
     </div>
 
+    <div>
+      <button class="btn btn-primary float-end" :disabled="!isFormValid || saving" @click="saveItem">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+
     <!-- Hidden file input -->
     <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" style="display: none">
+
+    <!-- Alert Modal -->
+    <AlertModal v-model:show="showAlert" :message="alertMessage" />
   </div>
 </template>
 
@@ -161,9 +173,13 @@ import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
 
 export default {
   name: 'EditClothingView',
+  components: {
+    AlertModal
+  },
   setup() {
     const router = useRouter()
     const route = useRoute()
@@ -179,6 +195,13 @@ export default {
     const selectedSeason = ref('')
     const selectedColor = ref('')
     const selectedEvent = ref('')
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
     
     const formData = ref({
       title: '',
@@ -213,7 +236,7 @@ export default {
         const itemDoc = await getDoc(itemRef)
         
         if (!itemDoc.exists()) {
-          alert('Item not found')
+          showAlertModal('Item not found')
           router.push('/app/clothing')
           return
         }
@@ -236,14 +259,14 @@ export default {
         loading.value = false
       } catch (error) {
         console.error('Error loading item:', error)
-        alert('Failed to load item. Please try again.')
+        showAlertModal('Failed to load item. Please try again.')
         router.push('/app/clothing')
       }
     }
 
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera not available. Please upload an image instead.')
+        showAlertModal('Camera not available. Please upload an image instead.')
         return
       }
       try {
@@ -277,7 +300,7 @@ export default {
         }
       } catch (error) {
         console.error('Camera error:', error)
-        alert('Could not access camera. Please upload an image instead.')
+        showAlertModal('Could not access camera. Please upload an image instead.')
       }
     }
 
@@ -413,14 +436,14 @@ export default {
     const saveItem = async () => {
       try {
         if (!isFormValid.value) {
-          alert('Please fill in all required fields (name, category).')
+          showAlertModal('Please fill in all required fields (name, category).')
           return
         }
         
         saving.value = true
         
         if (!currentUser.value) {
-          alert('You must be logged in to save items.')
+          showAlertModal('You must be logged in to save items.')
           router.push('/login')
           return
         }
@@ -442,16 +465,16 @@ export default {
             imageDownloadURL = await getDownloadURL(fileRef)
           } catch (uploadError) {
             if (uploadError.code === 'storage/unauthorized') {
-              alert('Permission denied: You may not be logged in or your session expired. Please log in again.')
+              showAlertModal('Permission denied: You may not be logged in or your session expired. Please log in again.')
               router.push('/login')
               saving.value = false
               return
             } else if (uploadError.code === 'storage/canceled') {
               // Keep existing image
             } else if (uploadError.message?.includes('CORS') || uploadError.message?.includes('cors')) {
-              alert('Image upload failed due to CORS configuration. The item will be saved with the existing image.')
+              showAlertModal('Image upload failed due to CORS configuration. The item will be saved with the existing image.')
             } else {
-              alert(`Image upload failed: ${uploadError.message || uploadError.code || 'Unknown error'}. The item will be saved with the existing image.`)
+              showAlertModal(`Image upload failed: ${uploadError.message || uploadError.code || 'Unknown error'}. The item will be saved with the existing image.`)
             }
           }
         }
@@ -471,12 +494,12 @@ export default {
           updatedAt: serverTimestamp()
         })
         
-        alert('Clothing item updated successfully!')
+        // alert('Clothing item updated successfully!')
         router.push(`/app/clothing/${itemId}`)
         
       } catch (error) {
         console.error('Error updating item:', error)
-        alert(`Failed to update item: ${error.message || 'Unknown error'}.`)
+        showAlertModal(`Failed to update item: ${error.message || 'Unknown error'}.`)
       } finally {
         saving.value = false
       }
@@ -517,7 +540,10 @@ export default {
       removeImage,
       addTag,
       removeTag,
-      saveItem
+      saveItem,
+      showAlert,
+      alertMessage,
+      showAlertModal
     }
   }
 }

@@ -3,9 +3,7 @@
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <button class="btn btn-outline-secondary" @click="$router.back()">
-        ← Back
-      </button>
+      <button class="btn btn-outline-secondary" @click="goBack"> ← Back</button>
 
       <div class="btn-group">
         <button class="btn btn-light" @click="toggleFavorite">
@@ -20,8 +18,8 @@
 
     <div class="row g-4">
 
-      <!-- Image Section -->
-      <div class="col-12">
+      <!-- Image / Composition -->
+      <div class="col-12 col-lg-6">
         <div class="card shadow-sm overflow-hidden">
           <img
             v-if="outfit.imageUrl"
@@ -46,7 +44,10 @@
                   :src="item.imageUrl"
                   class="img-fluid"
                 />
-                <div v-else class="display-5 text-white bg-primary w-100 py-4 text-center">
+                <div
+                  v-else
+                  class="display-5 text-white bg-primary w-100 py-4 text-center"
+                >
                   {{ getCategoryIcon(item.category) }}
                 </div>
               </div>
@@ -55,9 +56,10 @@
         </div>
       </div>
 
-      <!-- Info Section -->
-      <div class="col-12">
-        <div class="card p-4 shadow-sm">
+      <!-- Outfit Info -->
+      <div class="col-12 col-lg-6">
+        <div class="card p-4 shadow-sm h-100">
+
           <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
 
           <p v-if="outfit.description" class="text-muted">
@@ -83,8 +85,11 @@
                 :src="item.imageUrl"
               />
 
-              <div v-else class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3"
-                style="width: 60px; height: 60px;">
+              <div
+                v-else
+                class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3"
+                style="width: 60px; height: 60px;"
+              >
                 {{ getCategoryIcon(item.category) }}
               </div>
 
@@ -149,11 +154,11 @@
               </span>
             </div>
           </div>
+
         </div>
-
       </div>
-    </div>
 
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -163,17 +168,35 @@
     </div>
     <p class="mt-3 text-muted">Loading outfit details...</p>
   </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+  <!-- Confirm Delete Modal -->
+  <ConfirmModal 
+    v-model:show="showDeleteConfirm" 
+    title="Delete Outfit"
+    message="Are you sure you want to delete this outfit? This action cannot be undone."
+    @confirm="deleteOutfit"
+  />
 </template>
 
+
 <script>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
+import AlertModal from '@/components/AlertModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 export default {
   name: 'OutfitDetail',
+  components: {
+    AlertModal,
+    ConfirmModal
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -185,6 +208,14 @@ export default {
     })
 
     const outfit = useDocument(outfitRef)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    const showDeleteConfirm = ref(false)
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
 
     const getCategoryIcon = (category) => {
       const icons = { 
@@ -279,7 +310,7 @@ export default {
         })
       } catch (error) {
         console.error('Error updating favorite:', error)
-        alert('Failed to update favorite. Please try again.')
+        showAlertModal('Failed to update favorite. Please try again.')
       }
     }
 
@@ -288,9 +319,7 @@ export default {
     }
 
     const confirmDelete = () => {
-      if (confirm('Are you sure you want to delete this outfit? This action cannot be undone.')) {
-        deleteOutfit()
-      }
+      showDeleteConfirm.value = true
     }
 
     const deleteOutfit = async () => {
@@ -300,11 +329,22 @@ export default {
         router.push('/app/outfits')
       } catch (error) {
         console.error('Error deleting outfit:', error)
-        alert('Failed to delete outfit. Please try again.')
+        showAlertModal('Failed to delete outfit. Please try again.')
+      }
+    }
+
+    const goBack = () => {
+      const from = router.options.history.state.back
+
+      if (from && from.includes('/edit')) {
+        router.push('/app/outfits')
+      } else {
+        router.back()
       }
     }
 
     return {
+      goBack,
       outfit,
       getCategoryIcon,
       getCategoryLabel,
@@ -316,7 +356,12 @@ export default {
       navigateToClothingItem,
       toggleFavorite,
       editOutfit,
-      confirmDelete
+      confirmDelete,
+      showAlert,
+      alertMessage,
+      showAlertModal,
+      showDeleteConfirm, 
+      deleteOutfit
     }
   }
 }

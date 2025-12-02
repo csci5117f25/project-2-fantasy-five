@@ -247,6 +247,9 @@
     </div>
 
   </div>
+
+  <!-- Alert Modal -->
+  <AlertModal v-model:show="showAlert" :message="alertMessage" />
 </template>
 
 <script>
@@ -258,12 +261,24 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'fi
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { db, storage, auth } from '../firebase.js';
 
+import AlertModal from '@/components/AlertModal.vue'
+
 export default {
   name: 'ProfileView',
+  components: {
+    AlertModal
+  },
   setup() {
     const router = useRouter()
     const currentUser = useCurrentUser()
     const loading = ref(true)
+    const showAlert = ref(false)
+    const alertMessage = ref('')
+    
+    const showAlertModal = (message) => {
+      alertMessage.value = message
+      showAlert.value = true
+    }
     
     const userProfile = ref({
       name: '',
@@ -570,7 +585,7 @@ export default {
         event.target.value = ''
       } catch (error) { 
         console.error('Error uploading profile picture:', error)
-        alert('Error uploading profile picture') 
+        showAlertModal('Error uploading profile picture') 
       }
     }
     
@@ -592,7 +607,7 @@ export default {
       try {
         const user = currentUser.value
         if(!user) { 
-          alert('No user logged in')
+          showAlertModal('No user logged in')
           return 
         }
         await deleteUserData(user.uid)
@@ -601,10 +616,10 @@ export default {
       } catch (error) { 
         console.error('Delete account error:', error)
         if(error.code === 'auth/requires-recent-login') { 
-          alert('Please log in again')
+          showAlertModal('Please log in again')
           await logout()
         } else { 
-          alert('Error deleting account.') 
+          showAlertModal('Error deleting account.') 
         } 
       }
     }
@@ -657,7 +672,10 @@ export default {
       handleProfilePicChange,
       handleImageError,
       logout,
-      deleteAccount
+      deleteAccount,
+      showAlert,
+      alertMessage,
+      showAlertModal
     }
   }
 }
