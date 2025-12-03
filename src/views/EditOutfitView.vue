@@ -125,7 +125,7 @@
 
       <div class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
-        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+        <label class="form-check-label" for="collagePreviewToggle"> Show outfit preview</label>
       </div>
 
       <div v-if="collagePreviewEnabled && selectedItems.length > 0" class="mb-3 text-center">
@@ -141,7 +141,7 @@
             :key="item.id" 
             :src="item.imageUrl" 
             alt="Item preview" 
-            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+            style="width: 100%; height: 300px; object-fit: contain; border-radius: 4px;"
           >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
@@ -878,6 +878,31 @@ export default {
         saving.value=false
       }
     }
+
+    watch(selectedItems, async (newItems) => {
+      if (!currentUser.value || !Array.isArray(newItems) || newItems.length === 0) return
+
+      const uid = currentUser.value.uid
+
+      const validItems = await Promise.all(
+        newItems.map(async (item) => {
+          try {
+            const snap = await getDoc(doc(db, 'users', uid, 'clothingItems', item.id))
+            return snap.exists() ? { id: item.id, ...snap.data() } : null
+          } catch (err) {
+            console.error('Error checking clothing item:', err)
+            return null
+          }
+        })
+      )
+
+      const filteredItems = validItems.filter(item => item !== null)
+
+      if (filteredItems.length !== newItems.length) {
+        selectedItems.value = filteredItems
+      }
+    }, { deep: true })
+
 
     return {
       loading,

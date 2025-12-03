@@ -183,10 +183,10 @@
 
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
-import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { deleteImageFromStorage } from '@/utils/imageCleanup'
 import AlertModal from '@/components/AlertModal.vue'
@@ -349,6 +349,30 @@ export default {
         router.back()
       }
     }
+
+    watch(outfit, async (newOutfit) => {
+      if (!newOutfit || !newOutfit.clothingItemIds || !currentUser.value) return
+
+      const uid = currentUser.value.uid
+
+      const itemDetails = await Promise.all(
+        newOutfit.clothingItemIds.map(async (clothingId) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid, "clothingItems", clothingId))
+            if (snap.exists()) {
+              return { id: clothingId, ...snap.data() }
+            }
+            return null
+          } catch (e) {
+            console.error("Error fetching item:", e)
+            return null
+          }
+        })
+      )
+      newOutfit.itemDetails = itemDetails.filter(item => item !== null)
+    })
+
+
 
     return {
       goBack,

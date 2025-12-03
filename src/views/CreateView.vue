@@ -170,7 +170,7 @@
       <div v-if="currentType === 'Outfit'" class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
         <label class="form-check-label" for="collagePreviewToggle">
-          Show collage preview
+          Show outfit preview
         </label>
       </div>
 
@@ -187,7 +187,7 @@
             :key="item.id" 
             :src="item.imageUrl" 
             alt="Item preview" 
-            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+            style="width: 100%; height: 300px; object-fit: contain; border-radius: 4px;"
           >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
@@ -640,7 +640,7 @@ export default {
         modal.querySelector('#cancelCamera').onclick = closeCamera
         modal.querySelector('#capturePhoto').onclick = () => {
           // Calculate crop area based on viewfinder
-          const videoRect = preview.getBoundingClientRect()
+          // const videoRect = preview.getBoundingClientRect()
           const videoAspect = preview.videoWidth / preview.videoHeight
           
           let cropWidth, cropHeight, cropX, cropY
@@ -964,7 +964,6 @@ export default {
       showAlertModal,
       showImageEditor,
       editingImageUrl,
-      handleFileSelect,
       handleImageEditConfirm,
       handleImageEditCancel
     }
