@@ -20,7 +20,7 @@
 
       <!-- Image / Composition -->
       <div class="col-12 col-lg-6">
-        <div class="card shadow-sm overflow-hidden">
+        <div class="card shadow-sm overflow-hidden image-container">
           <img
             v-if="outfit.imageUrl"
             :src="outfit.imageUrl"
@@ -38,7 +38,7 @@
               :key="item.id"
               class="col"
             >
-              <div class="card h-100 d-flex align-items-center justify-content-center bg-light">
+              <div class="card h-100 bg-light image-container">
                 <img
                   v-if="item.imageUrl"
                   :src="item.imageUrl"
@@ -46,7 +46,7 @@
                 />
                 <div
                   v-else
-                  class="display-5 text-white bg-primary w-100 py-4 text-center"
+                  class="display-5 text-white bg-primary placeholder-image d-flex align-items-center justify-content-center"
                 >
                   {{ getCategoryIcon(item.category) }}
                 </div>
@@ -188,6 +188,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
+import { deleteImageFromStorage } from '@/utils/imageCleanup'
 import AlertModal from '@/components/AlertModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
@@ -325,6 +326,12 @@ export default {
     const deleteOutfit = async () => {
       if (!currentUser.value || !outfitRef.value) return
       try {
+        // Delete the image from storage if it exists
+        if (outfit.value?.imageUrl) {
+          await deleteImageFromStorage(outfit.value.imageUrl)
+        }
+        
+        // Delete the document
         await deleteDoc(outfitRef.value)
         router.push('/app/outfits')
       } catch (error) {

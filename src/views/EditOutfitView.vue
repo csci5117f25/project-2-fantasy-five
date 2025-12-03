@@ -26,8 +26,8 @@
           <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
         </div>
 
-        <div v-if="imageUrl" class="position-relative d-inline-block">
-          <img :src="imageUrl" alt="Preview" class="img-fluid rounded mb-2">
+        <div v-if="imageUrl" class="position-relative d-inline-block image-container" style="max-width: 400px; width: 100%;">
+          <img :src="imageUrl" alt="Preview" class="rounded mb-2" style="width: 100%; height: 100%; object-fit: cover;">
           <button @click="removeImage" class="btn-close position-absolute top-0 end-0"></button>
         </div>
         <div v-else class="border border-secondary rounded py-5 px-3">
@@ -223,6 +223,14 @@
 
     <!-- Alert Modal -->
     <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+    <!-- Image Editor Modal -->
+    <ImageEditor
+      v-model:show="showImageEditor"
+      :imageUrl="editingImageUrl"
+      @confirm="handleImageEditConfirm"
+      @cancel="handleImageEditCancel"
+    />
   </div>
 </template>
 
@@ -234,12 +242,15 @@ import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
+import { deleteImageFromStorage } from '@/utils/imageCleanup'
 import AlertModal from '@/components/AlertModal.vue'
+import ImageEditor from '@/components/ImageEditor.vue'
 
 export default {
   name: 'EditOutfitView',
   components: {
-    AlertModal
+    AlertModal,
+    ImageEditor
   },
   setup() {
     const router = useRouter()
@@ -264,6 +275,10 @@ export default {
       alertMessage.value = message
       showAlert.value = true
     }
+
+    // Image editor state
+    const showImageEditor = ref(false)
+    const editingImageUrl = ref(null)
 
     const formData = ref({
       title: '',
@@ -373,6 +388,29 @@ export default {
       ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
+    function drawImageFill(ctx, img, dx, dy, dWidth, dHeight, anchorLeft = false, anchorTop = false) {
+      const iw = img.width
+      const ih = img.height
+      const imgAspect = iw / ih
+      const cellAspect = dWidth / dHeight
+      
+      let sw, sh, sx, sy
+      
+      if (imgAspect > cellAspect) {
+        sw = dWidth
+        sh = dWidth / imgAspect
+        sx = dx
+        sy = anchorTop ? dy : dy + dHeight - sh
+      } else {
+        sh = dHeight
+        sw = dHeight * imgAspect
+        sx = anchorLeft ? dx : dx + dWidth - sw
+        sy = dy
+      }
+      
+      ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
     async function generateCollageFromUrls(urls = [], size = 800) {
       const imagesToUse = urls.slice(0, 6)
       if (imagesToUse.length === 0) return null
@@ -426,6 +464,43 @@ export default {
       return canvas.toDataURL('image/png')
     }
 
+    async function generateTightCollageFromUrls(urls = [], width = 800, height = 1000) {
+      const imagesToUse = urls.slice(0, 4)
+      if (imagesToUse.length === 0) return null
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, width, height)
+
+      const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
+      
+      if (imgs.length === 0) return null
+
+      const halfWidth = width / 2
+      const halfHeight = height / 2
+
+      if (imgs.length === 1) {
+        drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
+      } else if (imgs.length === 2) {
+        drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
+        drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
+      } else if (imgs.length === 3) {
+        drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+        drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+        drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
+      } else {
+        drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+        drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+        drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
+        drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+      }
+
+      return canvas.toDataURL('image/png')
+    }
+
     const regeneratePreview = async () => {
       if (!collagePreviewEnabled.value) {
         collagePreviewUrl.value = null
@@ -466,22 +541,111 @@ export default {
         const modal = document.createElement('div')
         modal.className = 'modal d-block'
         modal.style.backgroundColor = 'rgba(0,0,0,0.8)'
-        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Take Photo</h5><button type="button" class="btn-close" id="closeCamera"></button></div><div class="modal-body text-center"><video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px;"></video></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelCamera">Cancel</button><button class="btn btn-primary" id="capturePhoto">Capture</button></div></div></div>'
+        modal.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Take Photo</h5>
+                <button type="button" class="btn-close" id="closeCamera"></button>
+              </div>
+              <div class="modal-body text-center p-0 position-relative" style="background: #000;">
+                <video id="cameraPreview" autoplay playsinline style="width: 100%; max-height: 70vh; display: block;"></video>
+                <div id="viewfinderOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCamera">Cancel</button>
+                <button class="btn btn-primary" id="capturePhoto">Capture</button>
+              </div>
+            </div>
+          </div>`
         document.body.appendChild(modal)
         const preview = modal.querySelector('#cameraPreview')
+        const overlay = modal.querySelector('#viewfinderOverlay')
         preview.srcObject = stream
+        
+        // Standard clothing product photo size: 800x1000 (portrait)
+        const targetWidth = 800
+        const targetHeight = 1000
+        const aspectRatio = targetWidth / targetHeight
+        
+        // Create viewfinder overlay
+        const maskId = `viewfinderMask-${Date.now()}`
+        const updateViewfinder = () => {
+          const videoRect = preview.getBoundingClientRect()
+          const videoAspect = preview.videoWidth / preview.videoHeight
+          
+          let viewfinderWidth, viewfinderHeight, viewfinderLeft, viewfinderTop
+          
+          if (videoAspect > aspectRatio) {
+            // Video is wider than target, fit to height
+            viewfinderHeight = videoRect.height
+            viewfinderWidth = viewfinderHeight * aspectRatio
+            viewfinderLeft = (videoRect.width - viewfinderWidth) / 2
+            viewfinderTop = 0
+          } else {
+            // Video is taller than target, fit to width
+            viewfinderWidth = videoRect.width
+            viewfinderHeight = viewfinderWidth / aspectRatio
+            viewfinderLeft = 0
+            viewfinderTop = (videoRect.height - viewfinderHeight) / 2
+          }
+          
+          // Create SVG overlay with darkened areas
+          overlay.innerHTML = `
+            <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+              <defs>
+                <mask id="${maskId}">
+                  <rect width="100%" height="100%" fill="white"/>
+                  <rect x="${viewfinderLeft}" y="${viewfinderTop}" width="${viewfinderWidth}" height="${viewfinderHeight}" fill="black"/>
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#${maskId})"/>
+              <rect x="${viewfinderLeft}" y="${viewfinderTop}" width="${viewfinderWidth}" height="${viewfinderHeight}" 
+                    fill="none" stroke="white" stroke-width="3" stroke-dasharray="10,5"/>
+            </svg>
+          `
+        }
+        
+        preview.addEventListener('loadedmetadata', () => {
+          updateViewfinder()
+        })
+        
+        window.addEventListener('resize', updateViewfinder)
+        
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         const closeCamera = () => {
           stream.getTracks().forEach(track => track.stop())
+          window.removeEventListener('resize', updateViewfinder)
           document.body.removeChild(modal)
         }
         modal.querySelector('#closeCamera').onclick = closeCamera
         modal.querySelector('#cancelCamera').onclick = closeCamera
         modal.querySelector('#capturePhoto').onclick = () => {
-          canvas.width = preview.videoWidth
-          canvas.height = preview.videoHeight
-          ctx.drawImage(preview, 0, 0)
+          // Calculate crop area based on viewfinder
+          const videoAspect = preview.videoWidth / preview.videoHeight
+          
+          let cropWidth, cropHeight, cropX, cropY
+          
+          if (videoAspect > aspectRatio) {
+            // Video is wider, crop width
+            cropHeight = preview.videoHeight
+            cropWidth = cropHeight * aspectRatio
+            cropX = (preview.videoWidth - cropWidth) / 2
+            cropY = 0
+          } else {
+            // Video is taller, crop height
+            cropWidth = preview.videoWidth
+            cropHeight = cropWidth / aspectRatio
+            cropX = 0
+            cropY = (preview.videoHeight - cropHeight) / 2
+          }
+          
+          // Draw cropped area to canvas at target size
+          canvas.width = targetWidth
+          canvas.height = targetHeight
+          ctx.drawImage(preview, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight)
+          
           canvas.toBlob((blob) => {
             if (blob) {
               imageFile.value = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
@@ -500,9 +664,29 @@ export default {
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
       if (file) {
-        imageFile.value = file
-        imageUrl.value = URL.createObjectURL(file)
+        const objectUrl = URL.createObjectURL(file)
+        editingImageUrl.value = objectUrl
+        showImageEditor.value = true
       }
+    }
+
+    const handleImageEditConfirm = (blob) => {
+      if (blob) {
+        imageFile.value = new File([blob], `edited-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        imageUrl.value = URL.createObjectURL(blob)
+      }
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+      }
+      editingImageUrl.value = null
+    }
+
+    const handleImageEditCancel = () => {
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+        editingImageUrl.value = null
+      }
+      fileInput.value.value = ''
     }
     const removeImage = () => {
       imageUrl.value = null
@@ -631,6 +815,7 @@ export default {
 
         const outfitId = route.params.id
         let imageDownloadURL = null
+        const oldImageUrl = existingImageUrl.value
 
         if(imageFile.value){
           try{
@@ -640,13 +825,18 @@ export default {
             await currentUser.value.getIdToken(true)
             await uploadBytes(fRef, imageFile.value, {contentType:imageFile.value.type||'image/jpeg'})
             imageDownloadURL = await getDownloadURL(fRef)
+            
+            // Delete old image if it exists and is different from the new one
+            if (oldImageUrl && oldImageUrl !== imageDownloadURL) {
+              await deleteImageFromStorage(oldImageUrl)
+            }
           }catch(err){ console.error('Image upload failed', err) }
         }
 
         if(!imageDownloadURL && selectedItems.value.length>0){
           try{
             const urls=selectedItems.value.map(it=>it.imageUrl).filter(Boolean)
-            const dataUrl = await generateCollageFromUrls(urls,1200)
+            const dataUrl = await generateTightCollageFromUrls(urls, 1200, 1500)
             if(dataUrl){
               const fileName=`${Date.now()}-collage.png`
               const storagePath=`users/${currentUser.value.uid}/outfits/${fileName}`
@@ -654,6 +844,11 @@ export default {
               await currentUser.value.getIdToken(true)
               await uploadString(fRef,dataUrl,'data_url')
               imageDownloadURL=await getDownloadURL(fRef)
+              
+              // Delete old image if it exists and is different from the new one
+              if (oldImageUrl && oldImageUrl !== imageDownloadURL) {
+                await deleteImageFromStorage(oldImageUrl)
+              }
             }
           }catch(err){ console.error('Collage generation/upload failed',err) }
         }
@@ -727,7 +922,11 @@ export default {
       regeneratePreview,
       showAlert,
       alertMessage,
-      showAlertModal
+      showAlertModal,
+      showImageEditor,
+      editingImageUrl,
+      handleImageEditConfirm,
+      handleImageEditCancel
     }
   }
 }

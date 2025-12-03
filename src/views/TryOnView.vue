@@ -19,6 +19,7 @@
     const randomShoe = ref(0)
     const randomHat = ref(0)
     const randomAccessories = ref([])
+    const accessoryIdx = ref([])
     const addHeadware = ref(false)
     const showAlert = ref(false)
     const alertMessage = ref('')
@@ -126,6 +127,37 @@
         ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
+    function drawImageFill(ctx, img, dx, dy, dWidth, dHeight, anchorLeft = false, anchorTop = false) {
+        const iw = img.width
+        const ih = img.height
+        const imgAspect = iw / ih
+        const cellAspect = dWidth / dHeight
+        
+        let sw, sh, sx, sy
+        
+        if (imgAspect > cellAspect) {
+            sw = dWidth
+            sh = dWidth / imgAspect
+            sx = dx
+            if (anchorTop) {
+                sy = dy
+            } else {
+                sy = dy + dHeight - sh
+            }
+        } else {
+            sh = dHeight
+            sw = dHeight * imgAspect
+            if (anchorLeft) {
+                sx = dx
+            } else {
+                sx = dx + dWidth - sw
+            }
+            sy = dy
+        }
+        
+        ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
     async function generateCollageFromUrls(urls = [], size = 800) {
         const imagesToUse = urls.slice(0, 4)
         if (imagesToUse.length === 0) return null
@@ -161,6 +193,43 @@
         return canvas.toDataURL('image/png')
     }
 
+    async function generateTightCollageFromUrls(urls = [], width = 800, height = 1000) {
+        const imagesToUse = urls.slice(0, 4)
+        if (imagesToUse.length === 0) return null
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+
+        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
+        
+        if (imgs.length === 0) return null
+
+        const halfWidth = width / 2
+        const halfHeight = height / 2
+
+        if (imgs.length === 1) {
+            drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
+        } else if (imgs.length === 2) {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
+        } else if (imgs.length === 3) {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+            drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
+        } else {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+            drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
+            drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+        }
+
+        return canvas.toDataURL('image/png')
+    }
+
     const saveOutfit = async () => {
         if(!user.value) return
 
@@ -184,7 +253,7 @@
             let collageUrl = null
 
             if(urls.length > 0){
-                const dataUrl = await generateCollageFromUrls(urls, 1200)
+                const dataUrl = await generateTightCollageFromUrls(urls, 1200, 1500)
                 if(dataUrl){
                     const fileName = `${Date.now()}-collage.png`
                     const storagePath = `users/${user.value.uid}/outfits/${fileName}`
@@ -223,6 +292,8 @@
     const removeAddOn = (index) => {
         if (extra.value > 0) {
             extra.value--
+            accessoryIdx.value.splice(index, 1)
+            randomAccessories.value.splice(index, 1)
         }
     }
 </script>
@@ -233,12 +304,11 @@
     <!-- ACTION BUTTONS mobile -->
     <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
         <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
         <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
         <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
     </div>
-
 
     <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
 
@@ -278,22 +348,22 @@
                 </div>
             </div>
         </div>
-
+        
         <!-- ACCESSORIES -->
         <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
-            <div v-for="count in extra" :key="count" class="carousel-container accessory-item">
-                <div class="remove-btn" @click="removeAddOn(count)">
+            <div v-for="(id, index) in accessoryIdx" :key="id" class="carousel-container accessory-item">
+                <div class="remove-btn" @click="removeAddOn(index)">
                     <span class="remove-x">×</span>
                 </div>
-                <Carousel v-bind="config" class="carousel-outline" v-model="randomAccessories[count - 1]">
-                    <Slide v-for="image in accessories" :key="image.id">
-                        <div class="image-container">
-                            <img :src="image.imageUrl" class="carousel-img"/>
-                        </div>
-                    </Slide>
-                    <template #addons>
-                        <Navigation class="carousel-nav"/>
-                    </template>
+                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[index]">
+                <Slide v-for="image in accessories" :key="image.id" >
+                    <div class="image-container">
+                        <img :src="image.imageUrl" class="carousel-img"/>
+                    </div>
+                </Slide>
+                <template #addons>
+                    <Navigation class="carousel-nav"/>
+                </template>
                 </Carousel>
             </div>
         </div>
@@ -303,7 +373,7 @@
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
         <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++">✨ Add On</button>
+        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
         <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
         <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
         <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>

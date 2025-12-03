@@ -33,7 +33,7 @@
               <div class="card h-100 shadow-sm outfit-card" @click="$router.push(`/app/outfits/${outfit.id}`)">
                 
                 <!-- Image -->
-                <div class="position-relative">
+                <div class="position-relative image-container">
                   <img 
                     v-if="outfit.imageUrl" 
                     :src="outfit.imageUrl" 
@@ -41,8 +41,7 @@
                   >
                   <div 
                     v-else 
-                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                    style="height: 200px;"
+                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
                   >
                     👕
                   </div>
@@ -116,7 +115,7 @@
             class="col-6"
           >
             <div class="card h-100 shadow-sm" @click="$router.push(`/app/outfits/${outfit.id}`)">
-              <div class="bg-light">
+              <div class="bg-light image-container">
                 <img 
                   v-if="outfit.imageUrl" 
                   :src="outfit.imageUrl" 
@@ -124,8 +123,7 @@
                 >
                 <div 
                   v-else 
-                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                  style="height: 150px;"
+                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
                 >
                   👕
                 </div>
