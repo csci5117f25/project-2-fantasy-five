@@ -21,17 +21,28 @@
                     <button class="btn btn-outline-secondary btn-sm me-2" @click="takePhoto">📸 Take Photo</button>
                     <button class="btn btn-outline-secondary btn-sm" @click="triggerFileInput">📁 Upload Image</button>
                   </div>
-                  <div class="position-relative d-inline-block">
-                    <img 
-                      :src="userProfile.profilePic || defaultProfilePic" 
-                      alt="Profile Picture"
-                      class="rounded-circle img-fluid profile-pic"
-                      @error="handleImageError"
-                    >
+                  <div class="position-relative d-inline-block profile-pic-container">
+                    <div class="image-container" style="width: 150px; height: 150px; border-radius: 50%; overflow: hidden;">
+                      <img 
+                        v-if="userProfile.profilePic" 
+                        :src="userProfile.profilePic" 
+                        alt="Profile Picture"
+                        class="profile-pic-img"
+                        @error="handleImageError"
+                      >
+                      <div 
+                        v-else
+                        class="placeholder-image"
+                        style="border-radius: 50%;"
+                      >
+                        👤
+                      </div>
+                    </div>
                     <button 
                       v-if="userProfile.profilePic"
                       @click="removeProfilePic"
                       class="btn-close position-absolute top-0 end-0"
+                      style="background: white; padding: 4px;"
                     ></button>
                   </div>
                   <input 
@@ -250,6 +261,14 @@
 
   <!-- Alert Modal -->
   <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+  <!-- Profile Picture Editor Modal -->
+  <ProfilePictureEditor
+    v-model:show="showImageEditor"
+    :imageUrl="editingImageUrl"
+    @confirm="handleImageEditConfirm"
+    @cancel="handleImageEditCancel"
+  />
 </template>
 
 <script>
@@ -260,13 +279,16 @@ import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/fi
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { db, storage, auth } from '../firebase.js';
+import { deleteImageFromStorage, deleteImagesFromStorage } from '@/utils/imageCleanup'
 
 import AlertModal from '@/components/AlertModal.vue'
+import ProfilePictureEditor from '@/components/ProfilePictureEditor.vue'
 
 export default {
   name: 'ProfileView',
   components: {
-    AlertModal
+    AlertModal,
+    ProfilePictureEditor
   },
   setup() {
     const router = useRouter()
@@ -311,6 +333,10 @@ export default {
     const showDeleteConfirm = ref(false)
     const deleteConfirmation = ref('')
     const defaultProfilePic = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RlZTZmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE4IiBmaWxsPSIjOWM5YzljIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIFBob3RvPC90ZXh0Pjwvc3ZnPg=='
+    
+    // Image editor state
+    const showImageEditor = ref(false)
+    const editingImageUrl = ref(null)
     
     const headSizes = ref([])
     const topSizes = ref([])
@@ -526,7 +552,7 @@ export default {
     }
     const takePhoto = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        triggerFileInput()
+        showAlertModal('Camera not available. Please upload an image instead.')
         return
       }
       try {
@@ -534,55 +560,186 @@ export default {
         const modal = document.createElement('div')
         modal.className = 'modal d-block'
         modal.style.backgroundColor = 'rgba(0,0,0,0.8)'
-        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Take Photo</h5><button type="button" class="btn-close" id="closeCamera"></button></div><div class="modal-body text-center"><video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px; border-radius: 50%;"></video></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelCamera">Cancel</button><button class="btn btn-primary" id="capturePhoto">Capture</button></div></div></div>'
+        modal.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Take Photo</h5>
+                <button type="button" class="btn-close" id="closeCamera"></button>
+              </div>
+              <div class="modal-body text-center p-0 position-relative" style="background: #000;">
+                <video id="cameraPreview" autoplay playsinline style="width: 100%; max-height: 70vh; display: block;"></video>
+                <div id="viewfinderOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCamera">Cancel</button>
+                <button class="btn btn-primary" id="capturePhoto">Capture</button>
+              </div>
+            </div>
+          </div>`
         document.body.appendChild(modal)
         const preview = modal.querySelector('#cameraPreview')
+        const overlay = modal.querySelector('#viewfinderOverlay')
         preview.srcObject = stream
+        
+        const targetSize = 800
+        const aspectRatio = 1 
+        
+        // Create viewfinder overlay
+        const maskId = `viewfinderMask-${Date.now()}`
+        const updateViewfinder = () => {
+          const videoRect = preview.getBoundingClientRect()
+          const videoAspect = preview.videoWidth / preview.videoHeight
+          
+          let viewfinderWidth, viewfinderHeight, viewfinderLeft, viewfinderTop
+          
+          if (videoAspect > aspectRatio) {
+            // Video is wider than target, fit to height
+            viewfinderHeight = videoRect.height
+            viewfinderWidth = viewfinderHeight * aspectRatio
+            viewfinderLeft = (videoRect.width - viewfinderWidth) / 2
+            viewfinderTop = 0
+          } else {
+            // Video is taller than target, fit to width
+            viewfinderWidth = videoRect.width
+            viewfinderHeight = viewfinderWidth / aspectRatio
+            viewfinderLeft = 0
+            viewfinderTop = (videoRect.height - viewfinderHeight) / 2
+          }
+          
+          // Create SVG overlay with circular viewfinder
+          overlay.innerHTML = `
+            <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+              <defs>
+                <mask id="${maskId}">
+                  <rect width="100%" height="100%" fill="white"/>
+                  <circle cx="${viewfinderLeft + viewfinderWidth / 2}" cy="${viewfinderTop + viewfinderHeight / 2}" 
+                          r="${Math.min(viewfinderWidth, viewfinderHeight) / 2}" fill="black"/>
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#${maskId})"/>
+              <circle cx="${viewfinderLeft + viewfinderWidth / 2}" cy="${viewfinderTop + viewfinderHeight / 2}" 
+                      r="${Math.min(viewfinderWidth, viewfinderHeight) / 2}" 
+                      fill="none" stroke="white" stroke-width="3" stroke-dasharray="10,5"/>
+            </svg>
+          `
+        }
+        
+        preview.addEventListener('loadedmetadata', () => {
+          updateViewfinder()
+        })
+        
+        window.addEventListener('resize', updateViewfinder)
+        
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         const closeCamera = () => {
-          stream.getTracks().forEach(track => track.stop())
+          stream.getTracks().forEach(t => t.stop())
+          window.removeEventListener('resize', updateViewfinder)
           document.body.removeChild(modal)
         }
         modal.querySelector('#closeCamera').onclick = closeCamera
         modal.querySelector('#cancelCamera').onclick = closeCamera
         modal.querySelector('#capturePhoto').onclick = () => {
-          canvas.width = preview.videoWidth
-          canvas.height = preview.videoHeight
-          ctx.drawImage(preview, 0, 0)
-          canvas.toBlob((blob) => {
+          // Calculate crop area based on viewfinder
+          const videoRect = preview.getBoundingClientRect()
+          const videoAspect = preview.videoWidth / preview.videoHeight
+          
+          let cropWidth, cropHeight, cropX, cropY
+          
+          if (videoAspect > aspectRatio) {
+            // Video is wider, crop width
+            cropHeight = preview.videoHeight
+            cropWidth = cropHeight * aspectRatio
+            cropX = (preview.videoWidth - cropWidth) / 2
+            cropY = 0
+          } else {
+            // Video is taller, crop height
+            cropWidth = preview.videoWidth
+            cropHeight = cropWidth / aspectRatio
+            cropX = 0
+            cropY = (preview.videoHeight - cropHeight) / 2
+          }
+          
+
+          // Output square for circular profile picture
+          const outputSize = 800
+          canvas.width = outputSize
+          canvas.height = outputSize
+          ctx.drawImage(preview, cropX, cropY, cropWidth, cropHeight, 0, 0, outputSize, outputSize)
+          
+          // Apply circular mask
+          ctx.globalCompositeOperation = 'destination-in'
+          ctx.beginPath()
+          ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2)
+          ctx.fill()
+          
+          canvas.toBlob(async (blob) => {
             if (blob) {
-              const file = new File([blob], `profile-${Date.now()}.jpg`, { type: 'image/jpeg' })
-              const input = fileInput.value
-              const dataTransfer = new DataTransfer()
-              dataTransfer.items.add(file)
-              input.files = dataTransfer.files
-              input.dispatchEvent(new Event('change', { bubbles: true }))
+              await uploadProfilePicture(blob)
             }
             closeCamera()
           }, 'image/jpeg', 0.9)
         }
       } catch (error) {
         console.error('Camera error:', error)
-        triggerFileInput()
+        showAlertModal('Could not access camera. Please upload an image instead.')
       }
     }
     
-    const removeProfilePic = () => {
+    const removeProfilePic = async () => {
+      const oldProfilePic = userProfile.value.profilePic
       userProfile.value.profilePic = ''
-      saveProfile()
+      await saveProfile()
+      
+      // Delete the profile picture from storage
+      if (oldProfilePic) {
+        await deleteImageFromStorage(oldProfilePic)
+      }
     }
     
     const handleProfilePicChange = async (event) => {
       const file = event.target.files[0]
       if (!file || !currentUser.value) return
+      
+      const objectUrl = URL.createObjectURL(file)
+      editingImageUrl.value = objectUrl
+      showImageEditor.value = true
+      event.target.value = ''
+    }
+    
+    const handleImageEditConfirm = async (blob) => {
+      if (blob) {
+        await uploadProfilePicture(blob)
+      }
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+      }
+      editingImageUrl.value = null
+    }
+    
+    const handleImageEditCancel = () => {
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+        editingImageUrl.value = null
+      }
+    }
+    
+    const uploadProfilePicture = async (blob) => {
+      if (!currentUser.value) return
       try {
-        const fileRef = storageRef(storage, `users/${currentUser.value.uid}/profilePictures/${file.name}`)
-        const snapshot = await uploadBytes(fileRef, file)
+        const oldProfilePic = userProfile.value.profilePic
+        const fileName = `profile-${Date.now()}.jpg`
+        const fileRef = storageRef(storage, `users/${currentUser.value.uid}/profilePictures/${fileName}`)
+        const snapshot = await uploadBytes(fileRef, blob)
         const downloadURL = await getDownloadURL(snapshot.ref)
         userProfile.value.profilePic = downloadURL
         await saveProfile()
-        event.target.value = ''
+        
+        // Delete old profile picture if it exists and is different from the new one
+        if (oldProfilePic && oldProfilePic !== downloadURL) {
+          await deleteImageFromStorage(oldProfilePic)
+        }
       } catch (error) { 
         console.error('Error uploading profile picture:', error)
         showAlertModal('Error uploading profile picture') 
@@ -626,16 +783,37 @@ export default {
     
     const deleteUserData = async (userId) => {
       try {
-        await deleteDoc(doc(db, 'users', userId))
-        const clothingSnapshot = await getDocs(collection(db, 'users', userId, 'clothingItems'))
-        await Promise.all(clothingSnapshot.docs.map(doc => deleteDoc(doc.ref)))
-        const outfitsSnapshot = await getDocs(collection(db, 'users', userId, 'outfits'))
-        await Promise.all(outfitsSnapshot.docs.map(doc => deleteDoc(doc.ref)))
-        try { 
-          await deleteObject(storageRef(storage, `users/${userId}/profilePictures`))
-        } catch(e) {
-          console.log('No profile pic to delete')
+        // Collect all image URLs before deleting documents
+        const imageUrls = []
+        
+        // Get profile picture URL
+        const userDoc = await getDoc(doc(db, 'users', userId))
+        if (userDoc.exists()) {
+          const profilePicUrl = userDoc.data()?.userSettings?.profilePictureUrl
+          if (profilePicUrl) imageUrls.push(profilePicUrl)
         }
+        
+        // Get clothing item image URLs
+        const clothingSnapshot = await getDocs(collection(db, 'users', userId, 'clothingItems'))
+        clothingSnapshot.docs.forEach(doc => {
+          const imageUrl = doc.data()?.imageUrl
+          if (imageUrl) imageUrls.push(imageUrl)
+        })
+        
+        // Get outfit image URLs
+        const outfitsSnapshot = await getDocs(collection(db, 'users', userId, 'outfits'))
+        outfitsSnapshot.docs.forEach(doc => {
+          const imageUrl = doc.data()?.imageUrl
+          if (imageUrl) imageUrls.push(imageUrl)
+        })
+        
+        // Delete all images from storage
+        await deleteImagesFromStorage(imageUrls)
+        
+        // Delete Firestore documents
+        await deleteDoc(doc(db, 'users', userId))
+        await Promise.all(clothingSnapshot.docs.map(doc => deleteDoc(doc.ref)))
+        await Promise.all(outfitsSnapshot.docs.map(doc => deleteDoc(doc.ref)))
       } catch(e) {
         console.error('Delete user data error:', e)
         throw e
@@ -670,19 +848,33 @@ export default {
       takePhoto,
       removeProfilePic,
       handleProfilePicChange,
+      handleImageEditConfirm,
+      handleImageEditCancel,
       handleImageError,
       logout,
       deleteAccount,
       showAlert,
       alertMessage,
-      showAlertModal
+      showAlertModal,
+      showImageEditor,
+      editingImageUrl
     }
   }
 }
 </script>
 
 <style scoped>
-.profile-pic { width:150px; height:150px; object-fit:cover; border:4px solid #6f42c1; }
+.profile-pic-container {
+  width: 150px;
+  height: 150px;
+}
+
+.profile-pic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .editable-name, .editable-username {
   padding: 2px 4px;
   border-radius: 4px;

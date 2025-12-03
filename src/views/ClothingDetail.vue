@@ -18,10 +18,10 @@
 
       <!-- Image Section -->
       <div class="col-12 col-lg-6">
-        <div class="card shadow-sm overflow-hidden">
+        <div class="card shadow-sm overflow-hidden image-container">
           <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="img-fluid">
 
-          <div v-else class="d-flex align-items-center justify-content-center bg-primary text-white fs-1" style="height: 400px;">
+          <div v-else class="d-flex align-items-center justify-content-center bg-primary text-white fs-1 placeholder-image">
             {{ getCategoryIcon(item.category) }}
           </div>
         </div>
@@ -147,6 +147,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDocument, useCurrentUser } from 'vuefire'
 import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
+import { deleteImageFromStorage } from '@/utils/imageCleanup'
 import AlertModal from '@/components/AlertModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
@@ -279,6 +280,12 @@ export default {
     const deleteItem = async () => {
       if (!currentUser.value || !itemRef.value) return
       try {
+        // Delete the image from storage if it exists
+        if (item.value?.imageUrl) {
+          await deleteImageFromStorage(item.value.imageUrl)
+        }
+        
+        // Delete the document
         await deleteDoc(itemRef.value)
         router.push('/app/clothing')
       } catch (error) {
