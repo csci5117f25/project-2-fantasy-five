@@ -86,7 +86,7 @@
 
             <!-- About Me -->
             <div class="card mb-4 shadow-sm">
-              <div class="card-header bg-primary text-white">
+              <div class="card-header text-black">
                 <h5 class="mb-0">About Me</h5>
               </div>
               <div class="card-body">

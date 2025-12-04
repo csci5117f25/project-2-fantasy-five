@@ -7,7 +7,6 @@
     import { ref, computed, onMounted, onUnmounted } from 'vue';
     import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
     import AlertModal from '@/components/AlertModal.vue';
-    // import FilterPanel from '@/components/FilterPanel.vue';
    
     const user = useCurrentUser()
     const extra = ref(0) 
@@ -24,14 +23,19 @@
     const showAlert = ref(false)
     const alertMessage = ref('')
     const isEnoughItems = computed(() => (tops.value.length > 1 && bottoms.value.length > 1 && shoes.value.length > 1))
+    const saving = ref(false)
     
+
     const showAlertModal = (message) => {
         alertMessage.value = message
         showAlert.value = true
     }
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
-    onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
+    onMounted(() => { 
+        checkMobile(); 
+        window.addEventListener('resize', checkMobile);
+    })
     onUnmounted(() => { window.removeEventListener('resize', checkMobile) })
 
     const config = {
@@ -74,15 +78,9 @@
     })
 
      const carousels = ref([
-        // { items: headware, model: randomHat, condition: addHeadware},
         { items: tops, model: randomTop, condition: true },
         { items: bottoms, model: randomBottom, condition: isTop },
         { items: shoes, model: randomShoe, condition: true }])
-
-    // const getClothing = useCollection(() => {
-    //     if(!user.value) return null
-    //     return collection(doc(db, 'users', user.value.uid), 'clothingItems')
-    // })
 
     const randomize = () => {
         if(tops.value?.length) {
@@ -107,6 +105,67 @@
         }
     }
 
+    function chunkIntoGroupsOfFour(items) {
+        const groups = [];
+        for (let i = 0; i < items.length; i += 4) {
+            groups.push(items.slice(i, i + 4));
+        }
+        return groups;
+    }
+
+    function getCurrentOutfitDetails() {
+        const outfitDetails = []
+
+        if(tops.value?.length) outfitDetails.push({
+            id: tops.value[randomTop.value]?.id,
+            name: tops.value[randomTop.value]?.name || 'Top',
+            category: tops.value[randomTop.value]?.category || 'top',
+            imageUrl: tops.value[randomTop.value]?.imageUrl || '',
+            colors: tops.value[randomTop.value]?.colors || []
+        })
+        
+        if(bottoms.value?.length && isTop.value) outfitDetails.push({
+            id: bottoms.value[randomBottom.value]?.id,
+            name: bottoms.value[randomBottom.value]?.name || 'Bottom',
+            category: bottoms.value[randomBottom.value]?.category || 'bottom',
+            imageUrl: bottoms.value[randomBottom.value]?.imageUrl || '',
+            colors: bottoms.value[randomBottom.value]?.colors || []
+        })
+        
+        if(shoes.value?.length) outfitDetails.push({
+            id: shoes.value[randomShoe.value]?.id,
+            name: shoes.value[randomShoe.value]?.name || 'Shoes',
+            category: shoes.value[randomShoe.value]?.category || 'shoe',
+            imageUrl: shoes.value[randomShoe.value]?.imageUrl || '',
+            colors: shoes.value[randomShoe.value]?.colors || []
+        })
+        
+        if(headware.value?.length && addHeadware.value) outfitDetails.push({
+            id: headware.value[randomHat.value]?.id,
+            name: headware.value[randomHat.value]?.name || 'Headwear',
+            category: headware.value[randomHat.value]?.category || 'head',
+            imageUrl: headware.value[randomHat.value]?.imageUrl || '',
+            colors: headware.value[randomHat.value]?.colors || []
+        })
+        
+        if(extra.value > 0 && accessories.value?.length) {
+            for(let i = 0; i < extra.value; i++) {
+                const idx = randomAccessories.value[i]
+                if(idx != undefined && accessories.value[idx]) {
+                    outfitDetails.push({
+                        id: accessories.value[idx]?.id,
+                        name: accessories.value[idx]?.name || 'Accessory',
+                        category: accessories.value[idx]?.category || 'accessory',
+                        imageUrl: accessories.value[idx]?.imageUrl || '',
+                        colors: accessories.value[idx]?.colors || []
+                    })
+                }
+            }
+        }
+
+        return outfitDetails
+    }
+
     async function loadImage(url) {
         return new Promise((resolve, reject) => {
             const img = new Image()
@@ -115,17 +174,6 @@
             img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
             img.src = url
         })
-    }
-
-    function drawImageContain(ctx, img, dx, dy, dWidth, dHeight) {
-        const iw = img.width
-        const ih = img.height
-        const scale = Math.min(dWidth / iw, dHeight / ih)
-        const sw = iw * scale
-        const sh = ih * scale
-        const sx = dx + (dWidth - sw) / 2
-        const sy = dy + (dHeight - sh) / 2
-        ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
     function drawImageFill(ctx, img, dx, dy, dWidth, dHeight, anchorLeft = false, anchorTop = false) {
@@ -159,115 +207,108 @@
         ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
-    async function generateCollageFromUrls(urls = [], size = 800) {
-        const imagesToUse = urls.slice(0, 4)
-        if (imagesToUse.length === 0) return null
-
-        const canvas = document.createElement('canvas')
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, size, size)
-
-        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
-
-        if (imgs.length === 1) {
-            drawImageContain(ctx, imgs[0], 0, 0, size, size)
-        } else if (imgs.length === 2) {
-            const w = Math.floor(size / 2)
-            drawImageContain(ctx, imgs[0], 0, 0, w, size)
-            drawImageContain(ctx, imgs[1], w, 0, size - w, size)
-        } else if (imgs.length === 3) {
-            const half = Math.floor(size / 2)
-            drawImageContain(ctx, imgs[0], 0, 0, half, half)
-            drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-            drawImageContain(ctx, imgs[2], 0, half, size, size - half)
-        } else {
-            const half = Math.floor(size / 2)
-            drawImageContain(ctx, imgs[0], 0, 0, half, half)
-            drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-            drawImageContain(ctx, imgs[2], 0, half, half, size - half)
-            drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
-        }
-
-        return canvas.toDataURL('image/png')
-    }
-
     async function generateTightCollageFromUrls(urls = [], width = 800, height = 1000) {
         const imagesToUse = urls.slice(0, 4)
         if (imagesToUse.length === 0) return null
 
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, width, height)
+        try {
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, width, height)
 
-        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
-        
-        if (imgs.length === 0) return null
+            const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
+            
+            if (imgs.length === 0) return null
 
-        const halfWidth = width / 2
-        const halfHeight = height / 2
+            const halfWidth = width / 2
+            const halfHeight = height / 2
 
-        if (imgs.length === 1) {
-            drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
-        } else if (imgs.length === 2) {
-            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
-            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
-        } else if (imgs.length === 3) {
-            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
-            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
-            drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
-        } else {
-            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
-            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
-            drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
-            drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+            if (imgs.length === 1) {
+                drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
+            } else if (imgs.length === 2) {
+                drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
+                drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
+            } else if (imgs.length === 3) {
+                drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+                drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+                drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
+            } else {
+                drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+                drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+                drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
+                drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+            }
+
+            return canvas.toDataURL('image/png')
+        } catch (error) {
+            console.error('Error generating tight collage:', error)
+            return null
         }
+    }
 
-        return canvas.toDataURL('image/png')
+    async function generateCollagesForAllItems(selectedItems) {
+        const groups = chunkIntoGroupsOfFour(selectedItems);
+        const collagePromises = groups.map(group => {
+            const urls = group.map(item => item.imageUrl).filter(Boolean);
+            if (urls.length === 0) return Promise.resolve(null);
+            return generateTightCollageFromUrls(urls, 1200, 1500);
+        });
+        return await Promise.all(collagePromises);
     }
 
     const saveOutfit = async () => {
-        if(!user.value) return
-
-        const outfitDetails = []
-
-        if(tops.value?.length) outfitDetails.push(tops.value[randomTop.value])
-        if(bottoms.value?.length && isTop.value) outfitDetails.push(bottoms.value[randomBottom.value])
-        if(shoes.value?.length) outfitDetails.push(shoes.value[randomShoe.value])
-        if(headware.value?.length && addHeadware.value) outfitDetails.push(headware.value[randomHat.value])
-        if(extra.value > 0 && accessories.value?.length) {
-            for(let i = 0; i < extra.value; i++) {
-                const idx = randomAccessories.value[i]
-                if(idx != undefined) {
-                    outfitDetails.push(accessories.value[idx])
-                }
-            }
+        if(!user.value) {
+            showAlertModal("You must be logged in.")
+            return
         }
 
-        try {
-            const urls = outfitDetails.map(item => item.imageUrl).filter(Boolean)
-            let collageUrl = null
+        saving.value = true
 
-            if(urls.length > 0){
-                const dataUrl = await generateTightCollageFromUrls(urls, 1200, 1500)
-                if(dataUrl){
-                    const fileName = `${Date.now()}-collage.png`
-                    const storagePath = `users/${user.value.uid}/outfits/${fileName}`
-                    const fRef = storageRef(storage, storagePath)
-                    await uploadString(fRef, dataUrl, 'data_url')
-                    collageUrl = await getDownloadURL(fRef)
+        try {
+            const outfitDetails = getCurrentOutfitDetails()
+            const imageUrls = outfitDetails.map(item => item.imageUrl).filter(Boolean)
+            let uploadedCollages = []
+            let mainImageUrl = ''
+
+            // Generate collages for 4+ items
+            if (outfitDetails.length >= 4) {
+                const collageDataUrls = await generateCollagesForAllItems(outfitDetails)
+                
+                // Upload each collage to Firebase Storage
+                for (let i = 0; i < collageDataUrls.length; i++) {
+                    try {
+                        const dataUrl = collageDataUrls[i]
+                        if (dataUrl) {
+                            const fileName = `${Date.now()}-collage-${i}.png`
+                            const storagePath = `users/${user.value.uid}/outfits/${fileName}`
+                            const fRef = storageRef(storage, storagePath)
+                            await uploadString(fRef, dataUrl, 'data_url')
+                            const url = await getDownloadURL(fRef)
+                            uploadedCollages.push(url)
+                            
+                            // Use first collage as main image
+                            if (i === 0) {
+                                mainImageUrl = url
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Collage upload failed:', err)
+                    }
                 }
+            } else if (imageUrls.length > 0) {
+                // For less than 4 items, use the first item's image as main image
+                mainImageUrl = imageUrls[0]
             }
 
+            // Save to Firestore
             const outfitsRef = collection(doc(db, 'users', user.value.uid), 'outfits')
             await addDoc(outfitsRef, {
                 name: 'New Outfit',
                 description: '',
+                
                 itemDetails: outfitDetails.map(item => ({
                     id: item.id,
                     name: item.name || '',
@@ -275,14 +316,20 @@
                     imageUrl: item.imageUrl || '',
                     colors: item.colors || []
                 })),
-                imageUrl: collageUrl || '',
-                createdAt: serverTimestamp()
+                
+                imageUrl: mainImageUrl || '',
+                collages: uploadedCollages,
+                
+                createdAt: serverTimestamp(),
             })
 
-            showAlertModal("Successfully Saved")
+            showAlertModal("Outfit saved successfully!")
+            
         } catch (err) {
-            console.log("Error Saving", err)
+            console.error("Error Saving", err)
             showAlertModal("Failed to save outfit")
+        } finally {
+            saving.value = false
         }
     }
 
