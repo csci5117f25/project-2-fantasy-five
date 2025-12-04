@@ -93,10 +93,13 @@ export default {
       categories: [],
       seasons: [],
       colors: [],
-      events: []
+      events: [],
+      favorites: [] 
     })
 
     const filterSections = [
+      { key: 'favorites', title: 'Favorites', options: ['Favorites Only'] },
+
       { key: 'categories', title: 'Item Category', options: ['head', 'top', 'bottom', 'shoe', 'accessory', 'dress'] },
       { key: 'seasons', title: 'Season', options: ['Spring', 'Summer', 'Fall', 'Winter', 'All Season'] },
       { key: 'colors', title: 'Color', options: ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi'] },

@@ -271,7 +271,7 @@ export default {
     const filteredOutfits = computed(() => {
       if (!outfits.value) return []
       return outfits.value.filter(outfit => {
-        const { seasons, colors, events } = activeFilters.value
+        const { seasons, colors, events, favorites} = activeFilters.value
         if (seasons?.length) {
           const outfitSeasons = Array.isArray(outfit.seasons) ? outfit.seasons : outfit.season ? [outfit.season] : []
           if (!outfitSeasons.some(s => seasons.includes(s))) return false
@@ -283,6 +283,9 @@ export default {
         if (events?.length) {
           const outfitEvents = Array.isArray(outfit.events) ? outfit.events : outfit.event ? [outfit.event] : []
           if (!outfitEvents.some(e => events.includes(e))) return false
+        }
+         if (favorites?.includes('Favorites Only') && !outfit.favorite) {
+          return false
         }
         return true
       })
