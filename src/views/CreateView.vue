@@ -807,7 +807,6 @@ export default {
       const index = selectedItems.value.findIndex(s => s.id === item.id)
       if (index > -1) selectedItems.value.splice(index, 1)
       else selectedItems.value.push({ ...item })
-      // immediate preview update handled by watcher
     }
 
     const isItemSelected = (item) => selectedItems.value.some(s => s.id === item.id)
@@ -880,8 +879,8 @@ export default {
           colors: formData.value.colors || [],
           events: formData.value.events || [],
           tags: formData.value.tags || [],
-          imageUrl: imageDownloadURL || (uploadedCollages[0] || ''), // first collage as main image
-          collages: uploadedCollages, // all collages
+          imageUrl: imageDownloadURL || (uploadedCollages[0] || ''), 
+          collages: uploadedCollages, 
           userId: currentUser.value.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -926,10 +925,10 @@ export default {
 
       const collagePromises = groups.map(group => {
         const urls = group.map(item => item.imageUrl).filter(Boolean);
-        return generateTightCollageFromUrls(urls, 1200, 1500); // each group gets its own collage
+        return generateTightCollageFromUrls(urls, 1200, 1500); 
       });
 
-      return await Promise.all(collagePromises); // returns array of collages
+      return await Promise.all(collagePromises); 
     }
 
     const collages = ref([]);
@@ -940,7 +939,7 @@ export default {
         return;
       }
 
-      collages.value = await generateCollagesForAllItems(newItems); // returns array of collages
+      collages.value = await generateCollagesForAllItems(newItems); 
     });
 
 

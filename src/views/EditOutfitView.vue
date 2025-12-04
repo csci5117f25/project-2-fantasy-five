@@ -22,13 +22,11 @@
           <button class="btn btn-outline-secondary me-2" @click="takePhoto">📸 Take Photo</button>
           <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
         </div>
-        <!-- Replace the problematic section with this: -->
         <div v-if="imageUrl" class="position-relative d-inline-block image-container" style="max-width: 400px; width: 100%;">
           <img :src="imageUrl" alt="Preview" class="rounded mb-2" style="width: 100%; height: 100%; object-fit: cover;">
           <button @click="removeImage" class="btn-close position-absolute top-0 end-0"></button>
         </div>
 
-        <!-- Change this section to use existingCollages instead of outfit.collages -->
         <div v-else-if="existingCollages && existingCollages.length" :id="'carousel-' + route.params.id" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-inner">
             <div 
@@ -305,7 +303,6 @@ export default {
     const showAlert = ref(false)
     const alertMessage = ref('')
     
-    // Add this line - initialize existingCollages
     const existingCollages = ref([])
     
     const showAlertModal = (message) => {
@@ -384,7 +381,6 @@ export default {
         if (Array.isArray(outfit.itemDetails) && outfit.itemDetails.length > 0) {
           selectedItems.value = [...outfit.itemDetails]
         } else if (Array.isArray(outfit.clothingItemIds) && outfit.clothingItemIds.length > 0) {
-          // Load items from IDs if itemDetails not available
           await loadItemsFromIds(outfit.clothingItemIds)
         }
         
@@ -393,7 +389,6 @@ export default {
         showAlertModal('Failed to load outfit. Please try again.')
         router.push('/app/outfits')
       } finally {
-        // CRITICAL: Make sure to set loading to false
         loading.value = false
       }
     }
@@ -620,7 +615,43 @@ export default {
 
     /* ---------------- image upload & file handling ---------------- */
     const takePhoto = async () => {
-      // ... keep your existing takePhoto function unchanged ...
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showAlertModal('Camera not available. Please upload an image instead.')
+        return
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        const modal = document.createElement('div')
+        modal.className = 'modal d-block'
+        modal.style.backgroundColor = 'rgba(0,0,0,0.8)'
+        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Take Photo</h5><button type="button" class="btn-close" id="closeCamera"></button></div><div class="modal-body text-center"><video id="cameraPreview" autoplay playsinline style="max-width: 100%; max-height: 400px;"></video></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelCamera">Cancel</button><button class="btn btn-primary" id="capturePhoto">Capture</button></div></div></div>'
+        document.body.appendChild(modal)
+        const preview = modal.querySelector('#cameraPreview')
+        preview.srcObject = stream
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const closeCamera = () => {
+          stream.getTracks().forEach(track => track.stop())
+          document.body.removeChild(modal)
+        }
+        modal.querySelector('#closeCamera').onclick = closeCamera
+        modal.querySelector('#cancelCamera').onclick = closeCamera
+        modal.querySelector('#capturePhoto').onclick = () => {
+          canvas.width = preview.videoWidth
+          canvas.height = preview.videoHeight
+          ctx.drawImage(preview, 0, 0)
+          canvas.toBlob((blob) => {
+            if (blob) {
+              imageFile.value = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
+              imageUrl.value = URL.createObjectURL(blob)
+            }
+            closeCamera()
+          }, 'image/jpeg', 0.9)
+        }
+      } catch (error) {
+        console.error('Camera error:', error)
+        showAlertModal('Could not access camera. Please upload an image instead.')
+      }
     }
 
     const uploadImage = () => fileInput.value.click()
@@ -862,7 +893,7 @@ export default {
           clothingItemIds: selectedItems.value.length > 0 ? selectedItems.value.map(item => item.id) : [],
           itemDetails: selectedItems.value.length > 0 ? selectedItems.value : [],
           imageUrl: imageDownloadURL || '',
-          collages: uploadedCollages, // Store array of collages
+          collages: uploadedCollages, 
           updatedAt: serverTimestamp()
         })
 
@@ -912,22 +943,17 @@ export default {
 
       const collagePromises = groups.map(group => {
         const urls = group.map(item => item.imageUrl).filter(Boolean);
-        return generateTightCollageFromUrls(urls, 1200, 1500); // each group gets its own collage
+        return generateTightCollageFromUrls(urls, 1200, 1500); 
       });
 
-      return await Promise.all(collagePromises); // returns array of collages
+      return await Promise.all(collagePromises); 
     }
 
-    // Add these lines with your other refs
-    // existingCollages is already declared at the top
-
-    // Add this computed property
     const hasCollagesOnly = computed(() => {
       if (!existingImageUrl.value && existingCollages.value && existingCollages.value.length > 0) {
         return true
       }
       if (existingImageUrl.value && existingCollages.value && existingCollages.value.length > 0) {
-        // Check if the imageUrl is the same as the first collage
         return existingImageUrl.value === existingCollages.value[0]
       }
       return false
