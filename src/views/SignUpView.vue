@@ -146,7 +146,7 @@
 </template>
 
 <script>
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/firebase'
 import AlertModal from '@/components/AlertModal.vue'
@@ -183,7 +183,7 @@ export default {
             }
         },
         // check account submission
-        handleSubmit() {
+        async handleSubmit() {
             this.errors = [];
 
             if (!this.form.name.trim()) {
@@ -216,6 +216,7 @@ export default {
             const formData = new FormData();
             formData.append("name", this.form.name);
             formData.append("username", this.form.username);
+            formData.append("email", this.form.email);
             formData.append("password", this.form.password);
             if (this.form.profilePicture) {
                 formData.append("profilePicture", this.form.profilePicture);
@@ -225,6 +226,7 @@ export default {
             this.form.name = "";
             this.form.username = "";
             this.form.password = "";
+            this.form.email = "";
             this.form.confirmPassword = "";
             this.form.profilePicture = null;
 
@@ -233,7 +235,29 @@ export default {
                 fileInput.value = "";
             }
 
-            this.showAlertModal("all inputs valid; account data ready to send to server");
+            try {
+                this.loading = true
+                const userCreds = await createUserWithEmailAndPassword(auth, formData.get("email"), formData.get("password"))
+
+                await setDoc(doc(db, 'users', userCreds.user.uid), {
+                    name: formData.get("name"),
+                    username: formData.get("username"),
+                    email: formData.get("email"),
+                    profilePic: formData.get("profilePicture")
+                })
+                this.$router.push('/app/outfits')
+            } catch(error) {
+                console.error('Register error: ', error)
+                if (error.code === 'auth/email-already-in-use') {
+                    this.showAlertModal("Email Already In Use")
+                }
+                else {
+                    this.showAlertModal("Sign Up Fail")
+                }
+            }
+            finally {
+                this.loading = false
+            }
         },
         goToLogin() {
            this.$router.push('/login')
