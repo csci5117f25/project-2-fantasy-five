@@ -18,17 +18,40 @@
 
     <div class="row g-4">
 
-      <!-- Image / Composition -->
+      <!-- Image / Collage -->
       <div class="col-12 col-lg-6">
         <div class="card shadow-sm overflow-hidden image-container">
+
+          <!-- Carousel if multiple collages -->
+          <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              <div
+                v-for="(collage, index) in outfit.collages"
+                :key="index"
+                :class="['carousel-item', { active: index === 0 }]"
+              >
+                <img :src="collage" class="d-block w-100" alt="Outfit collage" />
+              </div>
+            </div>
+            <button class="carousel-control-prev" type="button" :data-bs-target="'#carousel-' + outfit.id" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" :data-bs-target="'#carousel-' + outfit.id" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
+
+          <!-- Fallback single image -->
           <img
-            v-if="outfit.imageUrl"
+            v-else-if="outfit.imageUrl"
             :src="outfit.imageUrl"
             :alt="outfit.name"
             class="img-fluid"
           />
 
-          <!-- Composition Grid -->
+          <!-- Fallback item grid -->
           <div
             v-else-if="outfit.itemDetails && outfit.itemDetails.length"
             class="row row-cols-2 p-4 g-3 bg-white"
@@ -53,13 +76,13 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
       <!-- Outfit Info -->
       <div class="col-12 col-lg-6">
         <div class="card p-4 shadow-sm h-100">
-
           <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
 
           <p v-if="outfit.description" class="text-muted">
@@ -67,9 +90,8 @@
           </p>
           <p v-else class="text-muted fst-italic">No description</p>
 
-          <!-- Outfits items -->
+          <!-- Outfit Items -->
           <h4 class="mt-4">Items in this outfit</h4>
-
           <div class="list-group my-3">
             <div
               v-for="item in outfit.itemDetails"
@@ -84,7 +106,6 @@
                 height="60"
                 :src="item.imageUrl"
               />
-
               <div
                 v-else
                 class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3"
@@ -180,6 +201,7 @@
     @confirm="deleteOutfit"
   />
 </template>
+
 
 
 <script>

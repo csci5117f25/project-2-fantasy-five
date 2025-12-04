@@ -355,8 +355,8 @@ export default {
     const colors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Orange', 'Brown', 'Gray', 'Multi']
     const events = ['Casual', 'Formal', 'Work', 'Party', 'Sports', 'Beach', 'Date', 'Travel']
 
-    const collagePreviewEnabled = ref(false) // UI should allow toggling this
-    const collagePreviewUrl = ref(null)      // data URL for preview
+    const collagePreviewEnabled = ref(false) 
+    const collagePreviewUrl = ref(null)   
 
     const isFormValid = computed(() => {
       if (currentType.value === 'Outfit') {
@@ -818,104 +818,136 @@ export default {
 
     const confirmItemSelection = () => showItemSelector.value = false
 
-    /* -------------------------
-       Save item and upload generated collage if needed
-       ------------------------- */
-
     const saveItem = async () => {
       try {
         if (!isFormValid.value) {
-          if (currentType.value === 'Outfit') showAlertModal('Please fill in the outfit name.')
-          else showAlertModal('Please fill in all required fields (name, category).')
-          return
-        }
-        saving.value = true
-        if (!currentUser.value) {
-          showAlertModal('You must be logged in to save items.')
-          router.push('/login')
-          return
+          showAlertModal('Please fill in all required fields.');
+          return;
         }
 
-        // If the user provided an explicit uploaded image (imageFile), we upload that.
-        // Otherwise if currentType === Outfit, we attempt to generate a collage from selected items.
-        let imageDownloadURL = null
+        if (!currentUser.value) {
+          showAlertModal('You must be logged in to save items.');
+          router.push('/login');
+          return;
+        }
+
+        saving.value = true;
+
+        let imageDownloadURL = null;
+
+        // Upload explicit image if provided
         if (imageFile.value) {
           try {
-            const storageFolder = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
-            const fileName = `${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-            const storagePath = `users/${currentUser.value.uid}/${storageFolder}/${fileName}`
-            const sRef = storageRef(storage, storagePath)
-            await currentUser.value.getIdToken(true)
-            await uploadBytes(sRef, imageFile.value, { contentType: imageFile.value.type || 'image/jpeg' })
-            imageDownloadURL = await getDownloadURL(sRef)
+            const storageFolder = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems';
+            const fileName = `${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            const storagePath = `users/${currentUser.value.uid}/${storageFolder}/${fileName}`;
+            const sRef = storageRef(storage, storagePath);
+            await uploadBytes(sRef, imageFile.value, { contentType: imageFile.value.type || 'image/jpeg' });
+            imageDownloadURL = await getDownloadURL(sRef);
           } catch (uploadError) {
-            console.error('Image upload error:', uploadError)
-            showAlertModal('Image upload failed. Saving without uploaded image.')
-            imageDownloadURL = null
+            console.error('Image upload error:', uploadError);
+            showAlertModal('Image upload failed. Saving without uploaded image.');
+            imageDownloadURL = null;
           }
         }
 
-        // If no explicit image, attempt collage generation for Outfit
-        if (!imageDownloadURL && currentType.value === 'Outfit') {
-          const itemUrls = selectedItems.value.map(it => it.imageUrl).filter(Boolean)
-          if (itemUrls.length > 0) {
+        // Generate collages for Outfit if no explicit image
+        let uploadedCollages = [];
+        if (!imageDownloadURL && currentType.value === 'Outfit' && selectedItems.value.length > 0) {
+          const collageDataUrls = await generateCollagesForAllItems(selectedItems.value);
+          
+          // Upload each collage
+          for (let i = 0; i < collageDataUrls.length; i++) {
             try {
-              const dataUrl = await generateTightCollageFromUrls(itemUrls, 1200, 1500) // larger for upload
-              if (dataUrl) {
-                // upload dataUrl string
-                const fileName = `${Date.now()}-collage.png`
-                const storagePath = `users/${currentUser.value.uid}/outfits/${fileName}`
-                const sRef = storageRef(storage, storagePath)
-                // uploadString used to upload data URL
-                await currentUser.value.getIdToken(true)
-                await uploadString(sRef, dataUrl, 'data_url')
-                imageDownloadURL = await getDownloadURL(sRef)
-              }
+              const dataUrl = collageDataUrls[i];
+              const fileName = `${Date.now()}-collage-${i}.png`;
+              const storagePath = `users/${currentUser.value.uid}/outfits/${fileName}`;
+              const sRef = storageRef(storage, storagePath);
+              await uploadString(sRef, dataUrl, 'data_url');
+              const url = await getDownloadURL(sRef);
+              uploadedCollages.push(url);
             } catch (err) {
-              console.error('Collage generation/upload failed', err)
+              console.error('Collage upload failed:', err);
             }
           }
         }
 
+        // Build item data
         const itemData = {
           name: formData.value.title,
           description: formData.value.description || '',
-          seasons: Array.isArray(formData.value.seasons) ? formData.value.seasons : [],
-          colors: Array.isArray(formData.value.colors) ? formData.value.colors : [],
-          events: Array.isArray(formData.value.events) ? formData.value.events : [],
-          tags: Array.isArray(formData.value.tags) ? formData.value.tags : [],
-          imageUrl: imageDownloadURL || '',
+          seasons: formData.value.seasons || [],
+          colors: formData.value.colors || [],
+          events: formData.value.events || [],
+          tags: formData.value.tags || [],
+          imageUrl: imageDownloadURL || (uploadedCollages[0] || ''), // first collage as main image
+          collages: uploadedCollages, // all collages
           userId: currentUser.value.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           favorite: false
-        }
+        };
 
         if (currentType.value === 'Clothing') {
-          itemData.category = formData.value.category
-          itemData.brand = formData.value.brand || ''
-          itemData.size = formData.value.size || ''
+          itemData.category = formData.value.category;
+          itemData.brand = formData.value.brand || '';
+          itemData.size = formData.value.size || '';
         }
 
         if (currentType.value === 'Outfit') {
-          itemData.clothingItemIds = selectedItems.value.length > 0 ? selectedItems.value.map(i => i.id) : []
-          itemData.itemDetails = selectedItems.value.length > 0 ? selectedItems.value : []
+          itemData.clothingItemIds = selectedItems.value.map(i => i.id);
+          itemData.itemDetails = selectedItems.value;
         }
 
-        const collectionName = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems'
-        await addDoc(collection(db, 'users', currentUser.value.uid, collectionName), itemData)
+        const collectionName = currentType.value === 'Outfit' ? 'outfits' : 'clothingItems';
+        await addDoc(collection(db, 'users', currentUser.value.uid, collectionName), itemData);
 
-        // alert(`${currentType.value} saved successfully!`)
-        router.push(currentType.value === 'Outfit' ? '/app/outfits' : '/app/clothing')
+        router.push(currentType.value === 'Outfit' ? '/app/outfits' : '/app/clothing');
+
       } catch (error) {
-        console.error('Error saving item:', error)
-        showAlertModal(`Failed to save item: ${error.message || 'Unknown error'}.`)
+        console.error('Error saving item:', error);
+        showAlertModal(`Failed to save item: ${error.message || 'Unknown error'}.`);
       } finally {
-        saving.value = false
+        saving.value = false;
       }
+    };
+
+
+    function chunkIntoGroupsOfFour(items) {
+      const groups = [];
+      for (let i = 0; i < items.length; i += 4) {
+        groups.push(items.slice(i, i + 4));
+      }
+      return groups;
     }
 
+    async function generateCollagesForAllItems(selectedItems) {
+      const groups = chunkIntoGroupsOfFour(selectedItems);
+
+      const collagePromises = groups.map(group => {
+        const urls = group.map(item => item.imageUrl).filter(Boolean);
+        return generateTightCollageFromUrls(urls, 1200, 1500); // each group gets its own collage
+      });
+
+      return await Promise.all(collagePromises); // returns array of collages
+    }
+
+    const collages = ref([]);
+
+    watch(selectedItems, async (newItems) => {
+      if (!currentUser.value || !newItems || newItems.length === 0) {
+        collages.value = [];
+        return;
+      }
+
+      collages.value = await generateCollagesForAllItems(newItems); // returns array of collages
+    });
+
+
     return {
+      chunkIntoGroupsOfFour, 
+      generateCollagesForAllItems,
+
       currentType,
       types,
       imageUrl,
