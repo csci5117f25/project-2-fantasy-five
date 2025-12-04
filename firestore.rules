@@ -50,9 +50,8 @@ service cloud.firestore {
       return item.keys().hasAll(['name', 'category', 'seasons', 'colors', 'tags', 'events', 'imageUrl', 'createdAt']) &&
              // String fields
              item.category is string &&
-             item.category in ['head', 'top', 'bottom', 'shoe', 'accessory'] &&
+             item.category in ['head', 'top', 'bottom', 'shoe', 'accessory', 'dress'] &&
              item.imageUrl is string &&
-             // Array fields - validate they are lists and contain strings
              item.seasons is list &&
              item.colors is list &&
              item.tags is list &&
@@ -67,12 +66,10 @@ service cloud.firestore {
       return outfit.keys().hasAll(['name', 'seasons', 'colors', 'tags', 'events', 'imageUrl', 'createdAt']) &&
              // String fields
              outfit.imageUrl is string &&
-             // Array fields - validate they are lists
              outfit.seasons is list &&
              outfit.colors is list &&
              outfit.tags is list &&
              outfit.events is list &&
-             // Optional array field
              (!('clothingItemIds' in outfit) || outfit.clothingItemIds is list) &&
              // Timestamp field
              outfit.createdAt is timestamp;
@@ -101,7 +98,10 @@ service cloud.firestore {
       match /clothingItems/{itemId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null && request.auth.uid == userId && isValidClothingItem();
-        allow update: if request.auth != null && request.auth.uid == userId && isValidClothingItem();
+        allow update: if request.auth != null && 
+                         request.auth.uid == userId && 
+                         isValidClothingItem() &&
+                         request.resource.data.createdAt == resource.data.createdAt;
         allow delete: if request.auth != null && request.auth.uid == userId;
       }
       
@@ -109,7 +109,10 @@ service cloud.firestore {
       match /outfits/{outfitId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null && request.auth.uid == userId && isValidOutfit();
-        allow update: if request.auth != null && request.auth.uid == userId && isValidOutfit();
+        allow update: if request.auth != null && 
+                         request.auth.uid == userId && 
+                         isValidOutfit() &&
+                         request.resource.data.createdAt == resource.data.createdAt;
         allow delete: if request.auth != null && request.auth.uid == userId;
       }
     }

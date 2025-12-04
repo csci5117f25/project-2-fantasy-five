@@ -65,11 +65,19 @@ export default {
 .custom-fixed-modal .modal-dialog {
   margin: 0 !important; 
   max-height: 90vh;
+  width: 400px;   
+  max-width: 90%;
+  min-width: 300px; 
 }
 
 .custom-fixed-modal .modal-content {
   max-height: 90vh;
   overflow-y: auto;
+  padding: 20px;      
+  border-radius: 8px;   
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 </style>
 

@@ -18,9 +18,9 @@
           <!-- Header -->
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="fw-bold text-dark m-0">My Clothing</h2>
-            <p class="text-muted m-0" v-if="filteredClothing?.length">
-              {{ filteredClothing.length }} items
-            </p>
+              <p class="text-muted m-0" v-if="filteredClothing?.length">
+                {{ filteredClothing.length }} items
+              </p>
           </div>
 
           <!-- Grid -->
@@ -33,7 +33,7 @@
               <div class="card h-100 shadow-sm clothing-card" @click="$router.push(`/app/clothing/${item.id}`)">
                 
                 <!-- Image -->
-                <div class="position-relative">
+                <div class="position-relative image-container">
                   <img 
                     v-if="item.imageUrl" 
                     :src="item.imageUrl" 
@@ -41,8 +41,7 @@
                   >
                   <div 
                     v-else 
-                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                    style="height: 200px;"
+                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
                   >
                     {{ getCategoryIcon(item.category) }}
                   </div>
@@ -113,7 +112,7 @@
             class="col-6"
           >
             <div class="card h-100 shadow-sm" @click="$router.push(`/app/clothing/${item.id}`)">
-              <div class="bg-light">
+              <div class="bg-light image-container">
                 <img 
                   v-if="item.imageUrl" 
                   :src="item.imageUrl" 
@@ -121,8 +120,7 @@
                 >
                 <div 
                   v-else 
-                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                  style="height: 150px;"
+                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
                 >
                   {{ getCategoryIcon(item.category) }}
                 </div>
@@ -170,6 +168,8 @@ export default {
     const currentUser = useCurrentUser()
     const showAlert = ref(false)
     const alertMessage = ref('')
+
+    
     
     const showAlertModal = (message) => {
       alertMessage.value = message
@@ -189,6 +189,7 @@ export default {
     })
 
     const clothing = useCollection(clothingQuery)
+    
 
     const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
     onMounted(() => { checkMobile(); window.addEventListener('resize', checkMobile) })
@@ -197,7 +198,7 @@ export default {
     const filteredClothing = computed(() => {
       if (!clothing.value) return []
       return clothing.value.filter(item => {
-        const { categories, seasons, colors, events } = activeFilters.value
+        const { categories, seasons, colors, events, favorites } = activeFilters.value
         if (categories?.length && !categories.includes(item.category)) return false
         if (seasons?.length) {
           const itemSeasons = Array.isArray(item.seasons) ? item.seasons : item.season ? [item.season] : []
@@ -211,6 +212,10 @@ export default {
           const itemEvents = Array.isArray(item.events) ? item.events : item.event ? [item.event] : []
           if (!itemEvents.some(e => events.includes(e))) return false
         }
+         if (favorites?.includes('Favorites Only') && !item.favorite) {
+          return false
+        }
+
         return true
       })
     })
@@ -268,7 +273,8 @@ export default {
       navigateToCreate,
       showAlert,
       alertMessage,
-      showAlertModal
+      showAlertModal,
+
     }
   }
 }
