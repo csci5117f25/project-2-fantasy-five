@@ -171,6 +171,7 @@
                   </div>
 
                   <button 
+                    v-if="outfit.collages.length > 1"
                     class="carousel-control-prev" 
                     type="button" 
                     :data-bs-target="'#carousel-' + outfit.id" 
@@ -182,6 +183,7 @@
                   </button>
 
                   <button 
+                    v-if="outfit.collages.length > 1"
                     class="carousel-control-next" 
                     type="button" 
                     :data-bs-target="'#carousel-' + outfit.id" 
