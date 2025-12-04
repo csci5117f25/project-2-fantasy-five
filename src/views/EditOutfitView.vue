@@ -6,9 +6,6 @@
       <h2 class="mb-0 position-absolute start-50 translate-middle-x text-center">
           Edit Outfit
        </h2>
-      <!-- <button class="btn btn-primary" :disabled="!isFormValid || saving || loading" @click="saveItem">
-        {{ saving ? 'Saving...' : 'Save Changes' }}
-      </button> -->
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -25,12 +22,47 @@
           <button class="btn btn-outline-secondary me-2" @click="takePhoto">📸 Take Photo</button>
           <button class="btn btn-outline-secondary" @click="uploadImage">📁 Upload Image</button>
         </div>
-
-        <div v-if="imageUrl" class="position-relative d-inline-block">
-          <img :src="imageUrl" alt="Preview" class="img-fluid rounded mb-2">
+        <div v-if="imageUrl" class="position-relative d-inline-block image-container" style="max-width: 400px; width: 100%;">
+          <img :src="imageUrl" alt="Preview" class="rounded mb-2" style="width: 100%; height: 100%; object-fit: cover;">
           <button @click="removeImage" class="btn-close position-absolute top-0 end-0"></button>
         </div>
-        <div v-else class="border border-secondary rounded py-5 px-3">
+
+        <div v-else-if="existingCollages && existingCollages.length" :id="'carousel-' + route.params.id" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+            <div 
+              v-for="(collage, index) in existingCollages" 
+              :key="index" 
+              :class="['carousel-item', { active: index === 0 }]"
+            >
+              <img :src="collage" class="d-block w-100" alt="Outfit collage">
+            </div>
+          </div>
+
+          <button 
+            v-if="existingCollages.length > 1"
+            class="carousel-control-prev" 
+            type="button" 
+            :data-bs-target="'#carousel-' + route.params.id" 
+            data-bs-slide="prev"
+            @click.stop
+          >
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+
+          <button 
+            v-if="existingCollages.length > 1"
+            class="carousel-control-next" 
+            type="button" 
+            :data-bs-target="'#carousel-' + route.params.id" 
+            data-bs-slide="next"
+            @click.stop
+          >
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>
+        <div v-else-if="!imageUrl" class="border border-secondary rounded py-5 px-3">
           <div class="fs-1 mb-2">📷</div>
           <p class="mb-0 text-muted">Upload or take a photo to get started</p>
         </div>
@@ -125,7 +157,7 @@
 
       <div class="form-check form-switch mb-2">
         <input class="form-check-input" type="checkbox" id="collagePreviewToggle" v-model="collagePreviewEnabled">
-        <label class="form-check-label" for="collagePreviewToggle">Show collage preview</label>
+        <label class="form-check-label" for="collagePreviewToggle"> Show outfit preview</label>
       </div>
 
       <div v-if="collagePreviewEnabled && selectedItems.length > 0" class="mb-3 text-center">
@@ -141,7 +173,7 @@
             :key="item.id" 
             :src="item.imageUrl" 
             alt="Item preview" 
-            style="width: 100%; height: 100px; object-fit: contain; border-radius: 4px;"
+            style="width: 100%; height: 300px; object-fit: contain; border-radius: 4px;"
           >
         </div>
         <div class="small text-muted mt-1">Preview updates as you add/remove items.</div>
@@ -223,6 +255,14 @@
 
     <!-- Alert Modal -->
     <AlertModal v-model:show="showAlert" :message="alertMessage" />
+
+    <!-- Image Editor Modal -->
+    <ImageEditor
+      v-model:show="showImageEditor"
+      :imageUrl="editingImageUrl"
+      @confirm="handleImageEditConfirm"
+      @cancel="handleImageEditCancel"
+    />
   </div>
 </template>
 
@@ -234,12 +274,15 @@ import { useCurrentUser } from 'vuefire'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, getDocs } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/firebase'
+import { deleteImageFromStorage } from '@/utils/imageCleanup'
 import AlertModal from '@/components/AlertModal.vue'
+import ImageEditor from '@/components/ImageEditor.vue'
 
 export default {
   name: 'EditOutfitView',
   components: {
-    AlertModal
+    AlertModal,
+    ImageEditor
   },
   setup() {
     const router = useRouter()
@@ -260,10 +303,16 @@ export default {
     const showAlert = ref(false)
     const alertMessage = ref('')
     
+    const existingCollages = ref([])
+    
     const showAlertModal = (message) => {
       alertMessage.value = message
       showAlert.value = true
     }
+
+    // Image editor state
+    const showImageEditor = ref(false)
+    const editingImageUrl = ref(null)
 
     const formData = ref({
       title: '',
@@ -312,6 +361,8 @@ export default {
           return
         }
         const outfit = outfitDoc.data()
+        
+        // Set form data
         formData.value.title = outfit.name || ''
         formData.value.description = outfit.description || ''
         formData.value.seasons = Array.isArray(outfit.seasons) ? [...outfit.seasons] : []
@@ -319,37 +370,70 @@ export default {
         formData.value.events = Array.isArray(outfit.events) ? [...outfit.events] : []
         formData.value.tags = Array.isArray(outfit.tags) ? [...outfit.tags] : []
 
+        // Set image data
         existingImageUrl.value = outfit.imageUrl || null
         imageUrl.value = outfit.imageUrl || null
+        
+        // Load existing collages
+        existingCollages.value = Array.isArray(outfit.collages) ? [...outfit.collages] : []
 
+        // Load selected items
         if (Array.isArray(outfit.itemDetails) && outfit.itemDetails.length > 0) {
-          selectedItems.value = outfit.itemDetails.map(i => ({ ...i }))
+          selectedItems.value = [...outfit.itemDetails]
         } else if (Array.isArray(outfit.clothingItemIds) && outfit.clothingItemIds.length > 0) {
-          const items = []
-          for (const id of outfit.clothingItemIds) {
-            try {
-              const itRef = doc(db, 'users', currentUser.value.uid, 'clothingItems', id)
-              const itDoc = await getDoc(itRef)
-              if (itDoc.exists()) items.push({ id: itDoc.id, ...itDoc.data() })
-            } catch (err) {
-              console.error(`Error loading item ${id}`, err)
-            }
-          }
-          selectedItems.value = items
+          await loadItemsFromIds(outfit.clothingItemIds)
         }
-
-        loading.value = false
+        
       } catch (error) {
         console.error('Error loading outfit:', error)
         showAlertModal('Failed to load outfit. Please try again.')
         router.push('/app/outfits')
+      } finally {
+        loading.value = false
       }
     }
 
-    onMounted(async () => {
-      await loadAvailableItems()
-      await loadOutfit()
+    // Helper function to load items from IDs
+    const loadItemsFromIds = async (itemIds) => {
+      try {
+        if (!currentUser.value || !Array.isArray(itemIds) || itemIds.length === 0) return
+        
+        const items = []
+        for (const itemId of itemIds) {
+          try {
+            const itemDoc = await getDoc(doc(db, 'users', currentUser.value.uid, 'clothingItems', itemId))
+            if (itemDoc.exists()) {
+              items.push({ id: itemDoc.id, ...itemDoc.data() })
+            }
+          } catch (err) {
+            console.error(`Error loading item ${itemId}:`, err)
+          }
+        }
+        selectedItems.value = items
+      } catch (error) {
+        console.error('Error loading items from IDs:', error)
+      }
+    }
+
+    // Initialize on mount
+    onMounted(() => {
+      initializeData()
     })
+
+    // Better initialization with error handling
+    const initializeData = async () => {
+      try {
+        await Promise.all([
+          loadAvailableItems(),
+          loadOutfit()
+        ])
+      } catch (error) {
+        console.error('Error initializing data:', error)
+        showAlertModal('Failed to load data. Please refresh the page.')
+      } finally {
+        loading.value = false
+      }
+    }
 
     /* -------------- collage utils --------------- */
     function loadImage(url) {
@@ -373,57 +457,131 @@ export default {
       ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
+    function drawImageFill(ctx, img, dx, dy, dWidth, dHeight, anchorLeft = false, anchorTop = false) {
+      const iw = img.width
+      const ih = img.height
+      const imgAspect = iw / ih
+      const cellAspect = dWidth / dHeight
+      
+      let sw, sh, sx, sy
+      
+      if (imgAspect > cellAspect) {
+        sw = dWidth
+        sh = dWidth / imgAspect
+        sx = dx
+        sy = anchorTop ? dy : dy + dHeight - sh
+      } else {
+        sh = dHeight
+        sw = dHeight * imgAspect
+        sx = anchorLeft ? dx : dx + dWidth - sw
+        sy = dy
+      }
+      
+      ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
     async function generateCollageFromUrls(urls = [], size = 800) {
+      if (!Array.isArray(urls) || urls.length === 0) return null
+      
       const imagesToUse = urls.slice(0, 6)
       if (imagesToUse.length === 0) return null
 
-      const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
-      const ctx = canvas.getContext('2d')
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
 
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, size, size)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, size, size)
 
-      const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
+        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u)))
 
-      if (imgs.length === 1) {
-        drawImageContain(ctx, imgs[0], 0, 0, size, size)
-      } else if (imgs.length === 2) {
-        const w = Math.floor(size / 2)
-        drawImageContain(ctx, imgs[0], 0, 0, w, size)
-        drawImageContain(ctx, imgs[1], w, 0, size - w, size)
-      } else if (imgs.length === 3) {
-        const half = Math.floor(size / 2)
-        drawImageContain(ctx, imgs[0], 0, 0, half, half)
-        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-        drawImageContain(ctx, imgs[2], 0, half, size, size - half)
-      } else if (imgs.length === 4) {
-        const half = Math.floor(size / 2)
-        drawImageContain(ctx, imgs[0], 0, 0, half, half)
-        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-        drawImageContain(ctx, imgs[2], 0, half, half, size - half)
-        drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
-      } else if (imgs.length === 5) {
-        const third = Math.floor(size / 3)
-        const half = Math.floor(size / 2)
-        drawImageContain(ctx, imgs[0], 0, 0, half, half)
-        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
-        drawImageContain(ctx, imgs[3], third, half, third, size - half)
-        drawImageContain(ctx, imgs[4], 2*third, half, size - 2*third, size - half)
-      } else if (imgs.length === 6) {
-        const third = Math.floor(size / 3)
-        const half = Math.floor(size / 2)
-        drawImageContain(ctx, imgs[0], 0, 0, half, half)
-        drawImageContain(ctx, imgs[1], half, 0, size - half, half)
-        drawImageContain(ctx, imgs[2], 0, half, third, size - half)
-        drawImageContain(ctx, imgs[3], third, half, third, size - half)
-        drawImageContain(ctx, imgs[4], 2*third, half, third, size - half)
-        drawImageContain(ctx, imgs[5], 0, size - half, size, half)
+        if (imgs.length === 1) {
+          drawImageContain(ctx, imgs[0], 0, 0, size, size)
+        } else if (imgs.length === 2) {
+          const w = Math.floor(size / 2)
+          drawImageContain(ctx, imgs[0], 0, 0, w, size)
+          drawImageContain(ctx, imgs[1], w, 0, size - w, size)
+        } else if (imgs.length === 3) {
+          const half = Math.floor(size / 2)
+          drawImageContain(ctx, imgs[0], 0, 0, half, half)
+          drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+          drawImageContain(ctx, imgs[2], 0, half, size, size - half)
+        } else if (imgs.length === 4) {
+          const half = Math.floor(size / 2)
+          drawImageContain(ctx, imgs[0], 0, 0, half, half)
+          drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+          drawImageContain(ctx, imgs[2], 0, half, half, size - half)
+          drawImageContain(ctx, imgs[3], half, half, size - half, size - half)
+        } else if (imgs.length === 5) {
+          const third = Math.floor(size / 3)
+          const half = Math.floor(size / 2)
+          drawImageContain(ctx, imgs[0], 0, 0, half, half)
+          drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+          drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+          drawImageContain(ctx, imgs[3], third, half, third, size - half)
+          drawImageContain(ctx, imgs[4], 2*third, half, size - 2*third, size - half)
+        } else if (imgs.length === 6) {
+          const third = Math.floor(size / 3)
+          const half = Math.floor(size / 2)
+          drawImageContain(ctx, imgs[0], 0, 0, half, half)
+          drawImageContain(ctx, imgs[1], half, 0, size - half, half)
+          drawImageContain(ctx, imgs[2], 0, half, third, size - half)
+          drawImageContain(ctx, imgs[3], third, half, third, size - half)
+          drawImageContain(ctx, imgs[4], 2*third, half, third, size - half)
+          drawImageContain(ctx, imgs[5], 0, size - half, size, half)
+        }
+
+        return canvas.toDataURL('image/png')
+      } catch (error) {
+        console.error('Error generating collage:', error)
+        return null
       }
+    }
 
-      return canvas.toDataURL('image/png')
+    async function generateTightCollageFromUrls(urls = [], width = 800, height = 1000) {
+      if (!Array.isArray(urls) || urls.length === 0) return null
+      
+      const imagesToUse = urls.slice(0, 4)
+      if (imagesToUse.length === 0) return null
+
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+
+        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
+        
+        if (imgs.length === 0) return null
+
+        const halfWidth = width / 2
+        const halfHeight = height / 2
+
+        if (imgs.length === 1) {
+          drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
+        } else if (imgs.length === 2) {
+          drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
+          drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
+        } else if (imgs.length === 3) {
+          drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+          drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+          drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
+        } else {
+          drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+          drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+          drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
+          drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+        }
+
+        return canvas.toDataURL('image/png')
+      } catch (error) {
+        console.error('Error generating tight collage:', error)
+        return null
+      }
     }
 
     const regeneratePreview = async () => {
@@ -500,9 +658,29 @@ export default {
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
       if (file) {
-        imageFile.value = file
-        imageUrl.value = URL.createObjectURL(file)
+        const objectUrl = URL.createObjectURL(file)
+        editingImageUrl.value = objectUrl
+        showImageEditor.value = true
       }
+    }
+
+    const handleImageEditConfirm = (blob) => {
+      if (blob) {
+        imageFile.value = new File([blob], `edited-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        imageUrl.value = URL.createObjectURL(blob)
+      }
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+      }
+      editingImageUrl.value = null
+    }
+
+    const handleImageEditCancel = () => {
+      if (editingImageUrl.value) {
+        URL.revokeObjectURL(editingImageUrl.value)
+        editingImageUrl.value = null
+      }
+      fileInput.value.value = ''
     }
     const removeImage = () => {
       imageUrl.value = null
@@ -625,66 +803,168 @@ export default {
     /* ---------------- Save outfit ---------------- */
     const saveItem = async () => {
       try {
-        if (!isFormValid.value) { showAlertModal('Please fill in the outfit name.'); return }
+        if (!isFormValid.value) { 
+          showAlertModal('Please fill in the outfit name.'); 
+          return 
+        }
         saving.value = true
-        if (!currentUser.value) { showAlertModal('You must be logged in to save items.'); router.push('/login'); saving.value=false; return }
+        if (!currentUser.value) { 
+          showAlertModal('You must be logged in to save items.'); 
+          router.push('/login'); 
+          saving.value=false; 
+          return 
+        }
 
         const outfitId = route.params.id
+        const uid = currentUser.value.uid
+        
         let imageDownloadURL = null
+        const oldImageUrl = existingImageUrl.value
+        let uploadedCollages = []
 
-        if(imageFile.value){
-          try{
-            const fileName=`${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g,'_')}`
-            const storagePath=`users/${currentUser.value.uid}/outfits/${fileName}`
+        // Upload explicit image if provided (user-uploaded cover image)
+        if (imageFile.value) {
+          try {
+            const fileName = `${Date.now()}-${imageFile.value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+            const storagePath = `users/${uid}/outfits/${fileName}`
             const fRef = storageRef(storage, storagePath)
-            await currentUser.value.getIdToken(true)
-            await uploadBytes(fRef, imageFile.value, {contentType:imageFile.value.type||'image/jpeg'})
+            await uploadBytes(fRef, imageFile.value, { contentType: imageFile.value.type || 'image/jpeg' })
             imageDownloadURL = await getDownloadURL(fRef)
-          }catch(err){ console.error('Image upload failed', err) }
-        }
-
-        if(!imageDownloadURL && selectedItems.value.length>0){
-          try{
-            const urls=selectedItems.value.map(it=>it.imageUrl).filter(Boolean)
-            const dataUrl = await generateCollageFromUrls(urls,1200)
-            if(dataUrl){
-              const fileName=`${Date.now()}-collage.png`
-              const storagePath=`users/${currentUser.value.uid}/outfits/${fileName}`
-              const fRef=storageRef(storage, storagePath)
-              await currentUser.value.getIdToken(true)
-              await uploadString(fRef,dataUrl,'data_url')
-              imageDownloadURL=await getDownloadURL(fRef)
+            
+            // Delete old image if it exists and is different from the new one
+            if (oldImageUrl && oldImageUrl !== imageDownloadURL) {
+              await deleteImageFromStorage(oldImageUrl)
             }
-          }catch(err){ console.error('Collage generation/upload failed',err) }
+          } catch (err) { 
+            console.error('Image upload failed', err) 
+            showAlertModal('Image upload failed. Please try again.')
+          }
         }
 
-        if(!imageDownloadURL) imageDownloadURL=existingImageUrl.value||null
+        // Generate collages if we have items and no user-uploaded image
+        if (selectedItems.value.length > 0 && !imageFile.value) {
+          try {
+            const collageDataUrls = await generateCollagesForAllItems(selectedItems.value)
+            
+            // Upload each collage
+            for (let i = 0; i < collageDataUrls.length; i++) {
+              try {
+                const dataUrl = collageDataUrls[i]
+                if (dataUrl) {
+                  const fileName = `${Date.now()}-collage-${i}.png`
+                  const storagePath = `users/${uid}/outfits/${fileName}`
+                  const fRef = storageRef(storage, storagePath)
+                  await uploadString(fRef, dataUrl, 'data_url')
+                  const url = await getDownloadURL(fRef)
+                  uploadedCollages.push(url)
+                }
+              } catch (err) {
+                console.error('Collage upload failed:', err)
+              }
+            }
+            
+            // If we have collages, use the first one as the main image
+            if (uploadedCollages.length > 0) {
+              imageDownloadURL = uploadedCollages[0]
+              
+              // Delete old image if it exists and is different from the new collage
+              if (oldImageUrl && oldImageUrl !== imageDownloadURL) {
+                await deleteImageFromStorage(oldImageUrl)
+              }
+            }
+          } catch (err) { 
+            console.error('Collage generation/upload failed', err) 
+          }
+        }
 
-        const outfitRef = doc(db, 'users', currentUser.value.uid, 'outfits', outfitId)
-        await updateDoc(outfitRef,{
+        // If no new image was uploaded or generated, keep the old one
+        if (!imageDownloadURL) {
+          imageDownloadURL = existingImageUrl.value || null
+        }
+
+        const outfitRef = doc(db, 'users', uid, 'outfits', outfitId)
+        await updateDoc(outfitRef, {
           name: formData.value.title,
-          description: formData.value.description||'',
-          seasons: Array.isArray(formData.value.seasons)?formData.value.seasons:[],
-          colors: Array.isArray(formData.value.colors)?formData.value.colors:[],
-          events: Array.isArray(formData.value.events)?formData.value.events:[],
-          tags: Array.isArray(formData.value.tags)?formData.value.tags:[],
-          clothingItemIds:selectedItems.value.length>0?selectedItems.value.map(item=>item.id):[],
-          itemDetails:selectedItems.value.length>0?selectedItems.value:[],
-          imageUrl:imageDownloadURL||'',
+          description: formData.value.description || '',
+          seasons: Array.isArray(formData.value.seasons) ? formData.value.seasons : [],
+          colors: Array.isArray(formData.value.colors) ? formData.value.colors : [],
+          events: Array.isArray(formData.value.events) ? formData.value.events : [],
+          tags: Array.isArray(formData.value.tags) ? formData.value.tags : [],
+          clothingItemIds: selectedItems.value.length > 0 ? selectedItems.value.map(item => item.id) : [],
+          itemDetails: selectedItems.value.length > 0 ? selectedItems.value : [],
+          imageUrl: imageDownloadURL || '',
+          collages: uploadedCollages, 
           updatedAt: serverTimestamp()
         })
 
-        // alert('Outfit updated successfully!')
         router.push(`/app/outfits/${outfitId}`)
-      } catch(error){
-        console.error('Error updating outfit:',error)
-        showAlertModal(`Failed to update outfit: ${error.message||'Unknown error'}.`)
-      } finally{
-        saving.value=false
+      } catch (error) {
+        console.error('Error updating outfit:', error)
+        showAlertModal(`Failed to update outfit: ${error.message || 'Unknown error'}.`)
+      } finally {
+        saving.value = false
       }
     }
 
+    watch(selectedItems, async (newItems) => {
+      if (!currentUser.value || !Array.isArray(newItems) || newItems.length === 0) return
+
+      const uid = currentUser.value.uid
+
+      const validItems = await Promise.all(
+        newItems.map(async (item) => {
+          try {
+            const snap = await getDoc(doc(db, 'users', uid, 'clothingItems', item.id))
+            return snap.exists() ? { id: item.id, ...snap.data() } : null
+          } catch (err) {
+            console.error('Error checking clothing item:', err)
+            return null
+          }
+        })
+      )
+
+      const filteredItems = validItems.filter(item => item !== null)
+
+      if (filteredItems.length !== newItems.length) {
+        selectedItems.value = filteredItems
+      }
+    }, { deep: true })
+
+    function chunkIntoGroupsOfFour(items) {
+      const groups = [];
+      for (let i = 0; i < items.length; i += 4) {
+        groups.push(items.slice(i, i + 4));
+      }
+      return groups;
+    }
+
+    async function generateCollagesForAllItems(selectedItems) {
+      const groups = chunkIntoGroupsOfFour(selectedItems);
+
+      const collagePromises = groups.map(group => {
+        const urls = group.map(item => item.imageUrl).filter(Boolean);
+        return generateTightCollageFromUrls(urls, 1200, 1500); 
+      });
+
+      return await Promise.all(collagePromises); 
+    }
+
+    const hasCollagesOnly = computed(() => {
+      if (!existingImageUrl.value && existingCollages.value && existingCollages.value.length > 0) {
+        return true
+      }
+      if (existingImageUrl.value && existingCollages.value && existingCollages.value.length > 0) {
+        return existingImageUrl.value === existingCollages.value[0]
+      }
+      return false
+    })
+
+
     return {
+      existingCollages,
+      hasCollagesOnly,
+      chunkIntoGroupsOfFour,
+
       loading,
       imageUrl,
       imageFile,
@@ -727,7 +1007,11 @@ export default {
       regeneratePreview,
       showAlert,
       alertMessage,
-      showAlertModal
+      showAlertModal,
+      showImageEditor,
+      editingImageUrl,
+      handleImageEditConfirm,
+      handleImageEditCancel
     }
   }
 }

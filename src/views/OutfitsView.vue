@@ -33,21 +33,61 @@
               <div class="card h-100 shadow-sm outfit-card" @click="$router.push(`/app/outfits/${outfit.id}`)">
                 
                 <!-- Image -->
-                <div class="position-relative">
+                <!-- Image -->
+                <div class="position-relative image-container">
+
                   <img 
                     v-if="outfit.imageUrl" 
                     :src="outfit.imageUrl" 
                     class="card-img-top"
+                    alt="Outfit cover"
                   >
-                  <div 
-                    v-else 
-                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                    style="height: 200px;"
-                  >
+                  <!-- Carousel if collages exist -->
+                  <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                      <div 
+                        v-for="(collage, index) in outfit.collages" 
+                        :key="index" 
+                        :class="['carousel-item', { active: index === 0 }]"
+                      >
+                        <img :src="collage" class="d-block w-100" alt="Outfit collage">
+                      </div>
+                    </div>
+
+                    <button 
+                      v-if="outfit.collages.length > 1"
+                      class="carousel-control-prev" 
+                      type="button" 
+                      :data-bs-target="'#carousel-' + outfit.id" 
+                      data-bs-slide="prev"
+                      @click.stop
+                    >
+                      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Previous</span>
+                    </button>
+
+                    <button 
+                      v-if="outfit.collages.length > 1"
+                      class="carousel-control-next" 
+                      type="button" 
+                      :data-bs-target="'#carousel-' + outfit.id" 
+                      data-bs-slide="next"
+                      @click.stop
+                    >
+                      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Next</span>
+                    </button>
+                  </div>
+
+                  <!-- Fallback to imageUrl -->
+                  <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="card-img-top">
+
+                  <!-- Placeholder -->
+                  <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
                     👕
                   </div>
 
-                  <!-- Favorite Button -->
+                  <!-- Favorite button -->
                   <button 
                     class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
                     @click.stop="toggleFavorite(outfit)"
@@ -116,19 +156,51 @@
             class="col-6"
           >
             <div class="card h-100 shadow-sm" @click="$router.push(`/app/outfits/${outfit.id}`)">
-              <div class="bg-light">
-                <img 
-                  v-if="outfit.imageUrl" 
-                  :src="outfit.imageUrl" 
-                  class="img-fluid"
-                >
-                <div 
-                  v-else 
-                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1"
-                  style="height: 150px;"
-                >
+              <div class="bg-light image-container">
+                
+                <!-- Mobile carousel if collages exist -->
+                <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
+                  <div class="carousel-inner">
+                    <div 
+                      v-for="(collage, index) in outfit.collages" 
+                      :key="index" 
+                      :class="['carousel-item', { active: index === 0 }]"
+                    >
+                      <img :src="collage" class="d-block w-100" alt="Outfit collage">
+                    </div>
+                  </div>
+
+                  <button 
+                    class="carousel-control-prev" 
+                    type="button" 
+                    :data-bs-target="'#carousel-' + outfit.id" 
+                    data-bs-slide="prev"
+                    @click.stop
+                  >
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                  </button>
+
+                  <button 
+                    class="carousel-control-next" 
+                    type="button" 
+                    :data-bs-target="'#carousel-' + outfit.id" 
+                    data-bs-slide="next"
+                    @click.stop
+                  >
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                  </button>
+                </div>
+
+                <!-- Fallback to imageUrl if no collages -->
+                <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="img-fluid">
+
+                <!-- Placeholder if neither -->
+                <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
                   👕
                 </div>
+
               </div>
               <div class="card-body py-2">
                 <h6 class="fw-semibold m-0">{{ outfit.name || outfit.title || 'Untitled Outfit' }}</h6>
@@ -264,5 +336,20 @@ export default {
 
 .bg-gradient {
   background-size: cover;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+  z-index: 1000; 
+  width: 3rem;  
+  height: 3rem;  
+  top: 50%; 
+  transform: translateY(-50%);
+  opacity: 0.8; 
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+  opacity: 1;
 }
 </style>

@@ -127,6 +127,37 @@
         ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
     }
 
+    function drawImageFill(ctx, img, dx, dy, dWidth, dHeight, anchorLeft = false, anchorTop = false) {
+        const iw = img.width
+        const ih = img.height
+        const imgAspect = iw / ih
+        const cellAspect = dWidth / dHeight
+        
+        let sw, sh, sx, sy
+        
+        if (imgAspect > cellAspect) {
+            sw = dWidth
+            sh = dWidth / imgAspect
+            sx = dx
+            if (anchorTop) {
+                sy = dy
+            } else {
+                sy = dy + dHeight - sh
+            }
+        } else {
+            sh = dHeight
+            sw = dHeight * imgAspect
+            if (anchorLeft) {
+                sx = dx
+            } else {
+                sx = dx + dWidth - sw
+            }
+            sy = dy
+        }
+        
+        ctx.drawImage(img, 0, 0, iw, ih, sx, sy, sw, sh)
+    }
+
     async function generateCollageFromUrls(urls = [], size = 800) {
         const imagesToUse = urls.slice(0, 4)
         if (imagesToUse.length === 0) return null
@@ -162,6 +193,43 @@
         return canvas.toDataURL('image/png')
     }
 
+    async function generateTightCollageFromUrls(urls = [], width = 800, height = 1000) {
+        const imagesToUse = urls.slice(0, 4)
+        if (imagesToUse.length === 0) return null
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+
+        const imgs = await Promise.all(imagesToUse.map(u => loadImage(u).catch(() => null))).then(results => results.filter(Boolean))
+        
+        if (imgs.length === 0) return null
+
+        const halfWidth = width / 2
+        const halfHeight = height / 2
+
+        if (imgs.length === 1) {
+            drawImageFill(ctx, imgs[0], 0, 0, width, height, true, true)
+        } else if (imgs.length === 2) {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, height, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, height, false, true)
+        } else if (imgs.length === 3) {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+            drawImageFill(ctx, imgs[2], 0, halfHeight, width, halfHeight, true, false)
+        } else {
+            drawImageFill(ctx, imgs[0], 0, 0, halfWidth, halfHeight, true, true)
+            drawImageFill(ctx, imgs[1], halfWidth, 0, halfWidth, halfHeight, false, true)
+            drawImageFill(ctx, imgs[2], 0, halfHeight, halfWidth, halfHeight, true, false)
+            drawImageFill(ctx, imgs[3], halfWidth, halfHeight, halfWidth, halfHeight, false, false)
+        }
+
+        return canvas.toDataURL('image/png')
+    }
+
     const saveOutfit = async () => {
         if(!user.value) return
 
@@ -185,7 +253,7 @@
             let collageUrl = null
 
             if(urls.length > 0){
-                const dataUrl = await generateCollageFromUrls(urls, 1200)
+                const dataUrl = await generateTightCollageFromUrls(urls, 1200, 1500)
                 if(dataUrl){
                     const fileName = `${Date.now()}-collage.png`
                     const storagePath = `users/${user.value.uid}/outfits/${fileName}`
@@ -300,6 +368,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- DESKTOP BUTTONS -->
     <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
