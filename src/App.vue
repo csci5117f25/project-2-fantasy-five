@@ -33,6 +33,10 @@
   color: white;
   font-size: 3rem;
 }
+
+html, body {
+  scrollbar-width: none;
+}
 </style>
 
 

@@ -24,7 +24,7 @@
           Clear All
         </button>
       </div>
-      <div>
+      <div class="filter-scrollable">
         <FilterSection
           v-for="section in visibleFilterSections"
           :key="section.key"
@@ -182,6 +182,9 @@ export default {
 .desktop-filter-panel {
   position: sticky; /* sticky relative to main content */
   top: 80px; /* adjust to navbar height (approx 3rem + padding) */
+  height: calc(100vh - 9rem);
+  display: flex;
+  flex-direction: column;
   z-index: 1050; /* below navbar */
   margin-left: -1rem;
   max-width: 280px;
@@ -190,5 +193,12 @@ export default {
 .mobile-offcanvas {
   height: 85vh;
   border-radius: 1.5rem 1.5rem 0 0;
+}
+
+.filter-scrollable {
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding-right: 4px;
+  height: 100%;
 }
 </style>

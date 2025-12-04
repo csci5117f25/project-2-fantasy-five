@@ -23,6 +23,7 @@
     const addHeadware = ref(false)
     const showAlert = ref(false)
     const alertMessage = ref('')
+    const isEnoughItems = computed(() => (tops.value.length > 1 && bottoms.value.length > 1 && shoes.value.length > 1))
     
     const showAlertModal = (message) => {
         alertMessage.value = message
@@ -286,7 +287,12 @@
     }
 
     const toggleHead = () => {
-        addHeadware.value = !addHeadware.value
+        if (headware.value.length === 0) {
+            showAlertModal("Add a headware item to your clothing to use Add Headware feature")
+        }
+        else {
+            addHeadware.value = !addHeadware.value
+        }
     }
 
     const removeAddOn = (index) => {
@@ -296,47 +302,43 @@
             randomAccessories.value.splice(index, 1)
         }
     }
+
+    const addAddOn = () => {
+        if (accessories.value.length === 0) {
+            showAlertModal("Add an accessory to your clothing to use Add On feature")
+        }
+        else {
+            extra.value++
+            randomAccessories.value.push(0)
+            accessoryIdx.value.push(Math.random().toString(36).substring(2, 10))
+        }
+    }
 </script>
 
 <template>
-    <div class="container-fluid p-4 d-flex flex-column align-items-center">
+    <div v-if="isEnoughItems" class="container-fluid p-4 d-flex flex-column align-items-center">
 
-    <!-- ACTION BUTTONS mobile -->
-    <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
-        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
-        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
-        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
-        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
-    </div>
+        <!-- ACTION BUTTONS mobile -->
+        <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
+            <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+            <button class="btn btn-lg btn-success" @click="addAddOn">✨ Add On</button>
+            <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+            <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+            <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
+        </div>
 
-    <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
+        <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
 
-        <div class="main-carousel-column d-flex flex-column align-items-center gap-3">
+            <div class="main-carousel-column d-flex flex-column align-items-center gap-3">
 
-            <!-- HEADWEAR -->
-            <div v-if="addHeadware" class="carousel-wrapper" style="margin-bottom: 15px; position: relative; max-width: 320px;">
-                <div class="remove-btn" @click="toggleHead">
-                    <span class="remove-x">×</span>
-                </div>
+                <!-- HEADWEAR -->
+                <div v-if="addHeadware" class="carousel-wrapper" style="margin-bottom: 15px; position: relative; max-width: 320px;">
+                    <div class="remove-btn" @click="toggleHead">
+                        <span class="remove-x">×</span>
+                    </div>
 
-                <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
-                    <Slide v-for="image in headware" :key="image.id">
-                        <div class="image-container">
-                            <img :src="image.imageUrl" class="carousel-img"/>
-                        </div>
-                    </Slide>
-                    <template #addons>
-                        <Navigation class="carousel-nav"/>
-                    </template>
-                </Carousel>
-            </div>
-
-            <!-- MAIN CAROUSELS -->
-            <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
-                <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
-                    <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
-                        <Slide v-for="image in carouselData.items" :key="image.id">
+                    <Carousel v-bind="config" class="carousel-outline" v-model="randomHat">
+                        <Slide v-for="image in headware" :key="image.id">
                             <div class="image-container">
                                 <img :src="image.imageUrl" class="carousel-img"/>
                             </div>
@@ -346,39 +348,76 @@
                         </template>
                     </Carousel>
                 </div>
+
+                <!-- MAIN CAROUSELS -->
+                <div class="main-carousel-wrapper d-flex flex-column align-items-center gap-3">
+                    <div v-for="(carouselData, index) in carousels" :key="index" v-show="carouselData.condition" class="carousel-wrapper">
+                        <Carousel v-bind="config" class="carousel-outline" v-model="carouselData.model">
+                            <Slide v-for="image in carouselData.items" :key="image.id">
+                                <div class="image-container">
+                                    <img :src="image.imageUrl" class="carousel-img"/>
+                                </div>
+                            </Slide>
+                            <template #addons>
+                                <Navigation class="carousel-nav"/>
+                            </template>
+                        </Carousel>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ACCESSORIES -->
+            <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
+                <div v-for="(id, index) in accessoryIdx" :key="id" class="carousel-container accessory-item">
+                    <div class="remove-btn" @click="removeAddOn(index)">
+                        <span class="remove-x">×</span>
+                    </div>
+                    <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[index]">
+                    <Slide v-for="image in accessories" :key="image.id" >
+                        <div class="image-container">
+                            <img :src="image.imageUrl" class="carousel-img"/>
+                        </div>
+                    </Slide>
+                    <template #addons>
+                        <Navigation class="carousel-nav"/>
+                    </template>
+                    </Carousel>
+                </div>
+            </div>
+        </div>
+
+        <!-- DESKTOP BUTTONS -->
+        <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
+            <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
+            <button class="btn btn-lg btn-success" @click="addAddOn">✨ Add On</button>            <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
+            <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+            <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
+        </div>
+    </div>
+    <div v-else class="container-fluid p-4 d-flex flex-column align-items-center">
+        <div class="action-buttons d-flex flex-column gap-2 mb-3" v-if="isMobile">
+            <button class="btn btn-lg btn-dark" disabled>🌀 Random</button>
+            <button class="btn btn-lg btn-success" disabled>✨ Add On</button>
+            <button class="btn btn-lg btn-success" disabled>🎩 Add Headware</button>
+            <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+            <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" disabled>Save</button>
+        </div>
+
+        <div class="carousel-layout d-flex flex-column flex-lg-row align-items-center justify-content-center gap-4 w-100">
+            <div class="main-carousel-column d-flex flex-column align-items-center gap-3">
+                <div class="fs-1 opacity-50 mb-3">👕</div>
+                <h3>No clothing items yet</h3>
+                <p>Navigate to Clothing and add at least two tops or dresses, bottoms, and shoes to use Try On!</p>
             </div>
         </div>
         
-        <!-- ACCESSORIES -->
-        <div class="accessories-wrapper d-flex flex-wrap justify-content-start gap-3 mt-3 mt-lg-0" v-if="extra > 0">
-            <div v-for="(id, index) in accessoryIdx" :key="id" class="carousel-container accessory-item">
-                <div class="remove-btn" @click="removeAddOn(index)">
-                    <span class="remove-x">×</span>
-                </div>
-                <Carousel v-bind="config" class="carousel-outline"  v-model="randomAccessories[index]">
-                <Slide v-for="image in accessories" :key="image.id" >
-                    <div class="image-container">
-                        <img :src="image.imageUrl" class="carousel-img"/>
-                    </div>
-                </Slide>
-                <template #addons>
-                    <Navigation class="carousel-nav"/>
-                </template>
-                </Carousel>
-            </div>
+        <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
+            <button class="btn btn-lg btn-dark" disabled>🌀 Random</button>
+            <button class="btn btn-lg btn-success" disabled>✨ Add On</button>
+            <button class="btn btn-lg btn-success" disabled>🎩 Add Headware</button>
+            <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
+            <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" disabled>Save</button>
         </div>
-    </div>
-
-
-    <!-- DESKTOP BUTTONS -->
-    <div class="action-buttons d-flex flex-column gap-2 desktop-buttons" v-if="!isMobile">
-        <button class="btn btn-lg btn-dark" @click="randomize">🌀 Random</button>
-        <button class="btn btn-lg btn-success" @click="extra++; randomAccessories.push(0); accessoryIdx.push(Math.random().toString(36).substring(2, 10))">✨ Add On</button>
-        <button class="btn btn-lg btn-success" v-show="addHeadware === false" @click="toggleHead">🎩 Add Headware</button>
-        <!-- <button class="btn btn-lg btn-warning" v-show="addHeadware === true" @click="toggleHead">Remove Headware</button> -->
-        <button class="btn btn-lg btn-primary" style="background-color: #0d6efd; color: white;" @click="saveOutfit">Save</button>
-    </div>
-
     </div>
 
     <!-- Alert Modal -->

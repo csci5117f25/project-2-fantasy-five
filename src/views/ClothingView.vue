@@ -6,88 +6,90 @@
       <div v-if="!isMobile" class="row g-4">
         
         <!-- Sidebar -->
-        <div class="col-lg-3">
+        <div class="col-lg-3 sidebar">
           <div class="sticky-top" style="top: 1rem">
             <FilterPanel @filter-change="handleFilterChange" />
           </div>
         </div>
 
         <!-- Main content -->
-        <div class="col-lg-9">
-          
+        <div class="col-lg-9 main-container">
+
           <!-- Header -->
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="fw-bold text-dark m-0">My Clothing</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h2 class="fw-bold text-dark m-0">My Clothing</h2>
               <p class="text-muted m-0" v-if="filteredClothing?.length">
                 {{ filteredClothing.length }} items
               </p>
-          </div>
+            </div>
 
-          <!-- Grid -->
-          <div v-if="filteredClothing?.length" class="row g-4">
-            <div 
-              v-for="item in filteredClothing" 
-              :key="item.id"
-              class="col-md-6 col-lg-4"
-            >
-              <div class="card h-100 shadow-sm clothing-card" @click="$router.push(`/app/clothing/${item.id}`)">
-                
-                <!-- Image -->
-                <div class="position-relative image-container">
-                  <img 
-                    v-if="item.imageUrl" 
-                    :src="item.imageUrl" 
-                    class="card-img-top"
-                  >
-                  <div 
-                    v-else 
-                    class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
-                  >
-                    {{ getCategoryIcon(item.category) }}
+          <div class="main-content">
+
+            <!-- Grid -->
+            <div v-if="filteredClothing?.length" class="row g-4">
+              <div 
+                v-for="item in filteredClothing" 
+                :key="item.id"
+                class="col-md-6 col-lg-4"
+              >
+                <div class="card h-100 shadow-sm clothing-card" @click="$router.push(`/app/clothing/${item.id}`)">
+                  
+                  <!-- Image -->
+                  <div class="position-relative image-container">
+                    <img 
+                      v-if="item.imageUrl" 
+                      :src="item.imageUrl" 
+                      class="card-img-top"
+                    >
+                    <div 
+                      v-else 
+                      class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
+                    >
+                      {{ getCategoryIcon(item.category) }}
+                    </div>
+
+                    <!-- Favorite Button -->
+                    <button 
+                      class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
+                      @click.stop="toggleFavorite(item)"
+                    >
+                      {{ item.favorite ? '❤️' : '🤍' }}
+                    </button>
                   </div>
 
-                  <!-- Favorite Button -->
-                  <button 
-                    class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
-                    @click.stop="toggleFavorite(item)"
-                  >
-                    {{ item.favorite ? '❤️' : '🤍' }}
-                  </button>
-                </div>
+                  <!-- Card body -->
+                  <div class="card-body">
+                    <h5 class="card-title fw-semibold">
+                      {{ item.name || item.title }}
+                    </h5>
+                    <p class="text-primary mb-1">{{ getCategoryLabel(item.category) }}</p>
 
-                <!-- Card body -->
-                <div class="card-body">
-                  <h5 class="card-title fw-semibold">
-                    {{ item.name || item.title }}
-                  </h5>
-                  <p class="text-primary mb-1">{{ getCategoryLabel(item.category) }}</p>
+                    <!-- Tags -->
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <span v-if="item.colors && item.colors.length" class="badge bg-light text-secondary">
+                        {{ item.colors[0] }}{{ item.colors.length > 1 ? ' +' + (item.colors.length - 1) : '' }}
+                      </span>
+                      <span v-if="item.seasons && item.seasons.length" class="badge bg-light text-secondary">
+                        {{ item.seasons[0] }}{{ item.seasons.length > 1 ? ' +' + (item.seasons.length - 1) : '' }}
+                      </span>
+                    </div>
 
-                  <!-- Tags -->
-                  <div class="d-flex flex-wrap gap-2 mb-2">
-                    <span v-if="item.colors && item.colors.length" class="badge bg-light text-secondary">
-                      {{ item.colors[0] }}{{ item.colors.length > 1 ? ' +' + (item.colors.length - 1) : '' }}
-                    </span>
-                    <span v-if="item.seasons && item.seasons.length" class="badge bg-light text-secondary">
-                      {{ item.seasons[0] }}{{ item.seasons.length > 1 ? ' +' + (item.seasons.length - 1) : '' }}
-                    </span>
+                    <p class="small text-muted fst-italic" v-if="item.brand">
+                      {{ item.brand }}
+                    </p>
                   </div>
-
-                  <p class="small text-muted fst-italic" v-if="item.brand">
-                    {{ item.brand }}
-                  </p>
                 </div>
-
               </div>
             </div>
-          </div>
+            
 
-          <!-- Empty State -->
-          <div v-else class="text-center py-5">
-            <div class="fs-1 opacity-50 mb-3">👕</div>
-            <h3>No clothing items yet</h3>
-            <p>Use the + button to create your first clothing item!</p>
+            <!-- Empty State -->
+            <div v-else class="text-center py-5">
+              <div class="fs-1 opacity-50 mb-3">👕</div>
+              <h3>No clothing items yet</h3>
+              <p>Use the + button to create your first clothing item!</p>
+            </div>
           </div>
-
         </div>
       </div>
 
@@ -293,5 +295,24 @@ export default {
 
 .bg-gradient {
   background-size: cover;
+}
+
+.sidebar {
+  position: fixed;
+}
+
+.main-content {
+  overflow-y: auto;
+  scrollbar-width: none;
+  height: calc(100% - 54px);
+  padding-top: 5px;
+}
+
+.main-container {
+  position: fixed;
+  width: 60vw;
+  margin-left: 280px;
+  overflow: hidden;
+  height: calc(100vh - 9rem);
 }
 </style>

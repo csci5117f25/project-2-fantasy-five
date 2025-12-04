@@ -6,14 +6,14 @@
       <div v-if="!isMobile" class="row g-4">
         
         <!-- Sidebar -->
-        <div class="col-lg-3">
+        <div class="col-lg-3 sidebar">
           <div class="sticky-top" style="top: 1rem">
             <FilterPanel @filter-change="handleFilterChange" :hide-categories="true" />
           </div>
         </div>
 
         <!-- Main content -->
-        <div class="col-lg-9">
+        <div class="col-lg-9 main-container">
           
           <!-- Header -->
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -23,115 +23,117 @@
             </p>
           </div>
 
-          <!-- Grid -->
-          <div v-if="filteredOutfits?.length" class="row g-4">
-            <div 
-              v-for="outfit in filteredOutfits" 
-              :key="outfit.id"
-              class="col-md-6 col-lg-4"
-            >
-              <div class="card h-100 shadow-sm outfit-card" @click="$router.push(`/app/outfits/${outfit.id}`)">
-                
-                <!-- Image -->
-                <!-- Image -->
-                <div class="position-relative image-container">
+          <div class="main-content">
 
-                  <img 
-                    v-if="outfit.imageUrl" 
-                    :src="outfit.imageUrl" 
-                    class="card-img-top"
-                    alt="Outfit cover"
-                  >
-                  <!-- Carousel if collages exist -->
-                  <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner">
-                      <div 
-                        v-for="(collage, index) in outfit.collages" 
-                        :key="index" 
-                        :class="['carousel-item', { active: index === 0 }]"
-                      >
-                        <img :src="collage" class="d-block w-100" alt="Outfit collage">
+            <!-- Grid -->
+            <div v-if="filteredOutfits?.length" class="row g-4">
+              <div 
+                v-for="outfit in filteredOutfits" 
+                :key="outfit.id"
+                class="col-md-6 col-lg-4"
+              >
+                <div class="card h-100 shadow-sm outfit-card" @click="$router.push(`/app/outfits/${outfit.id}`)">
+                  
+                  <!-- Image -->
+                  <!-- Image -->
+                  <div class="position-relative image-container">
+
+                    <img 
+                      v-if="outfit.imageUrl" 
+                      :src="outfit.imageUrl" 
+                      class="card-img-top"
+                      alt="Outfit cover"
+                    >
+                    <!-- Carousel if collages exist -->
+                    <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
+                      <div class="carousel-inner">
+                        <div 
+                          v-for="(collage, index) in outfit.collages" 
+                          :key="index" 
+                          :class="['carousel-item', { active: index === 0 }]"
+                        >
+                          <img :src="collage" class="d-block w-100" alt="Outfit collage">
+                        </div>
                       </div>
+
+                      <button 
+                        v-if="outfit.collages.length > 1"
+                        class="carousel-control-prev" 
+                        type="button" 
+                        :data-bs-target="'#carousel-' + outfit.id" 
+                        data-bs-slide="prev"
+                        @click.stop
+                      >
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                      </button>
+
+                      <button 
+                        v-if="outfit.collages.length > 1"
+                        class="carousel-control-next" 
+                        type="button" 
+                        :data-bs-target="'#carousel-' + outfit.id" 
+                        data-bs-slide="next"
+                        @click.stop
+                      >
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                      </button>
                     </div>
 
-                    <button 
-                      v-if="outfit.collages.length > 1"
-                      class="carousel-control-prev" 
-                      type="button" 
-                      :data-bs-target="'#carousel-' + outfit.id" 
-                      data-bs-slide="prev"
-                      @click.stop
-                    >
-                      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                      <span class="visually-hidden">Previous</span>
-                    </button>
+                    <!-- Fallback to imageUrl -->
+                    <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="card-img-top">
 
+                    <!-- Placeholder -->
+                    <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
+                      👕
+                    </div>
+
+                    <!-- Favorite button -->
                     <button 
-                      v-if="outfit.collages.length > 1"
-                      class="carousel-control-next" 
-                      type="button" 
-                      :data-bs-target="'#carousel-' + outfit.id" 
-                      data-bs-slide="next"
-                      @click.stop
+                      class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
+                      @click.stop="toggleFavorite(outfit)"
                     >
-                      <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                      <span class="visually-hidden">Next</span>
+                      {{ outfit.favorite ? '❤️' : '🤍' }}
                     </button>
                   </div>
 
-                  <!-- Fallback to imageUrl -->
-                  <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="card-img-top">
+                  <!-- Card body -->
+                  <div class="card-body">
+                    <h5 class="card-title fw-semibold">
+                      {{ outfit.name || outfit.title || 'Untitled Outfit' }}
+                    </h5>
 
-                  <!-- Placeholder -->
-                  <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
-                    👕
+                    <p class="text-muted small">
+                      {{ truncateDescription(outfit.description) }}
+                    </p>
+
+                    <!-- Tags -->
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <span v-if="outfit.seasons && outfit.seasons.length" class="badge bg-light text-secondary">
+                        {{ outfit.seasons[0] }}{{ outfit.seasons.length > 1 ? ' +' + (outfit.seasons.length - 1) : '' }}
+                      </span>
+                      <span v-if="outfit.events && outfit.events.length" class="badge bg-light text-secondary">
+                        {{ outfit.events[0] }}{{ outfit.events.length > 1 ? ' +' + (outfit.events.length - 1) : '' }}
+                      </span>
+                    </div>
+
+                    <p class="small text-muted fst-italic" v-if="outfit.clothingItemIds">
+                      {{ outfit.clothingItemIds.length }} items
+                    </p>
                   </div>
 
-                  <!-- Favorite button -->
-                  <button 
-                    class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
-                    @click.stop="toggleFavorite(outfit)"
-                  >
-                    {{ outfit.favorite ? '❤️' : '🤍' }}
-                  </button>
                 </div>
-
-                <!-- Card body -->
-                <div class="card-body">
-                  <h5 class="card-title fw-semibold">
-                    {{ outfit.name || outfit.title || 'Untitled Outfit' }}
-                  </h5>
-
-                  <p class="text-muted small">
-                    {{ truncateDescription(outfit.description) }}
-                  </p>
-
-                  <!-- Tags -->
-                  <div class="d-flex flex-wrap gap-2 mb-2">
-                    <span v-if="outfit.seasons && outfit.seasons.length" class="badge bg-light text-secondary">
-                      {{ outfit.seasons[0] }}{{ outfit.seasons.length > 1 ? ' +' + (outfit.seasons.length - 1) : '' }}
-                    </span>
-                    <span v-if="outfit.events && outfit.events.length" class="badge bg-light text-secondary">
-                      {{ outfit.events[0] }}{{ outfit.events.length > 1 ? ' +' + (outfit.events.length - 1) : '' }}
-                    </span>
-                  </div>
-
-                  <p class="small text-muted fst-italic" v-if="outfit.clothingItemIds">
-                    {{ outfit.clothingItemIds.length }} items
-                  </p>
-                </div>
-
               </div>
             </div>
-          </div>
 
-          <!-- Empty State -->
-          <div v-else class="text-center py-5">
-            <div class="fs-1 opacity-50 mb-3">👕</div>
-            <h3>No Outfits yet</h3>
-            <p>Use the + button to create your first outfit!</p>
+            <!-- Empty State -->
+            <div v-else class="text-center py-5">
+              <div class="fs-1 opacity-50 mb-3">👕</div>
+              <h3>No Outfits yet</h3>
+              <p>Use the + button to create your first outfit!</p>
+            </div>
           </div>
-
         </div>
       </div>
 
@@ -202,7 +204,6 @@
                 <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
                   👕
                 </div>
-
               </div>
               <div class="card-body py-2">
                 <h6 class="fw-semibold m-0">{{ outfit.name || outfit.title || 'Untitled Outfit' }}</h6>
@@ -356,5 +357,24 @@ export default {
 .carousel-control-prev:hover,
 .carousel-control-next:hover {
   opacity: 1;
+}
+
+.sidebar {
+  position: fixed;
+}
+
+.main-content {
+  overflow-y: auto;
+  scrollbar-width: none;
+  height: calc(100% - 54px);
+  padding-top: 5px;
+}
+
+.main-container {
+  position: fixed;
+  width: 60vw;
+  margin-left: 280px;
+  overflow: hidden;
+  height: calc(100vh - 9rem);
 }
 </style>
