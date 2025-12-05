@@ -441,4 +441,11 @@ export default {
   transform: translateX(4px);
   transition: all 0.2s ease;
 }
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  filter: invert(100%); 
+  text-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+
 </style>
