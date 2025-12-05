@@ -36,7 +36,7 @@
           <p class="text-primary">{{ getCategoryLabel(item.category) }}</p>
 
           <p v-if="item.description" class="text-muted">{{ item.description }}</p>
-          <p v-else class="text-muted fst-italic">No description</p>
+          <!-- <p v-else class="text-muted fst-italic">No description</p> -->
 
           <!-- Details Grid -->
           <div class="row g-3 mt-4">
@@ -54,68 +54,59 @@
               </div>
             </div>
 
+            <!-- Seasons -->
+            <div class="col-md-4" v-if="item.seasons && item.seasons.length">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-medium text-secondary">Seasons</div>
+                <div class="fw-semibold">{{ item.seasons.join(', ') }}</div>
+              </div>
+            </div>
+
+            <!-- Events -->
+            <div class="col-md-4" v-if="item.events && item.events.length">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-medium text-secondary">Events</div>
+                <div class="fw-semibold">{{ item.events.join(', ') }}</div>
+              </div>
+            </div>
+
             <div class="col-md-4">
               <div class="border rounded p-3 bg-light">
-                <div class="fw-medium text-secondary">Added</div>
+                <div class="fw-medium text-secondary">Created</div>
                 <div class="fw-semibold">{{ formatDate(item.createdAt) }}</div>
               </div>
             </div>
-          </div>
 
-          <!-- Colors -->
-          <div v-if="item.colors && item.colors.length" class="mt-4">
-            <h4>Colors</h4>
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span 
-                v-for="color in item.colors" 
-                :key="color" 
-                class="badge px-3 py-2"
-                :style="{ 
-                  backgroundColor: getColorHex(color), 
-                  color: getContrastColor(color) 
-                }"
-              >
-                {{ color }}
-              </span>
+            <!-- Colors -->
+            <div v-if="item.colors && item.colors.length" class="mt-4">
+              <h4>Colors</h4>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span 
+                  v-for="color in item.colors" 
+                  :key="color" 
+                  class="badge px-3 py-2"
+                  :style="{ 
+                    backgroundColor: getColorHex(color), 
+                    color: getContrastColor(color) 
+                  }"
+                >
+                  {{ color }}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <!-- Seasons -->
-          <div v-if="item.seasons && item.seasons.length" class="mt-4">
-            <h4>Seasons</h4>
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span 
-                v-for="season in item.seasons" 
-                :key="season" 
-                class="badge px-3 py-2"
-                :class="getSeasonBadgeClass(season)"
-              >
-                {{ season }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Events -->
-          <div v-if="item.events && item.events.length" class="mt-4">
-            <h4>Events</h4>
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span 
-                v-for="event in item.events" 
-                :key="event" 
-                class="badge bg-info text-dark px-3 py-2"
-              >
-                {{ event }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Tags -->
-          <div v-if="item.tags && item.tags.length" class="mt-4">
-            <h4>Tags</h4>
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span v-for="tag in item.tags" :key="tag" class="badge bg-primary px-3 py-2">
-                {{ tag }}
-              </span>
+            <!-- Tags -->
+            <div v-if="item.tags && item.tags.length" class="mt-4">
+              <h4>Tags</h4>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span 
+                  v-for="tag in item.tags" 
+                  :key="tag" 
+                  class="tag-outline px-3 py-2"
+                >
+                  {{ tag }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -332,5 +323,16 @@ export default {
 <style scoped>
 .card img {
   object-fit: cover;
+}
+
+.tag-outline {
+  border: 1px solid #ced4da;       
+  border-radius: 0.5rem;             
+  background-color: #f8f9fa;         
+  color: #495057;                   
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-block;
+  transition: 0.2s ease;
 }
 </style>

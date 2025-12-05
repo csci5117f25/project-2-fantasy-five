@@ -102,10 +102,8 @@
             </div>
           </div>
 
-          <p v-if="outfit.description" class="text-muted">
-            {{ outfit.description }}
-          </p>
-          <p v-else class="text-muted fst-italic">No description</p>
+          <p v-if="outfit.description" class="text-muted">{{ outfit.description }}</p>
+          <!-- <p v-else class="text-muted fst-italic">No description</p> -->
 
           <!-- Outfit Items -->
           <h4 class="mt-4">Items in this outfit</h4>
@@ -184,15 +182,18 @@
           </div>
 
           <!-- Tags -->
-          <div v-if="outfit.tags && outfit.tags.length" class="mt-4">
-            <h4>Tags</h4>
-            <div class="d-flex flex-wrap gap-2 mt-2">
-              <span v-for="tag in outfit.tags" :key="tag" class="badge bg-primary px-3 py-2">
-                {{ tag }}
-              </span>
+            <div v-if="outfit.tags && outfit.tags.length" class="mt-4">
+              <h4>Tags</h4>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span 
+                  v-for="tag in outfit.tags" 
+                  :key="tag" 
+                  class="tag-outline px-3 py-2"
+                >
+                  {{ tag }}
+                </span>
+              </div>
             </div>
-          </div>
-
         </div>
       </div>
 
@@ -448,5 +449,16 @@ export default {
 .carousel-control-next-icon {
   filter: invert(100%); 
   text-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+
+.tag-outline {
+  border: 1px solid #ced4da;       
+  border-radius: 0.5rem;             
+  background-color: #f8f9fa;         
+  color: #495057;                   
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-block;
+  transition: 0.2s ease;
 }
 </style>
