@@ -260,7 +260,7 @@
     }
 
     const saveOutfit = async () => {
-        if(!user.value) {
+        if (!user.value) {
             showAlertModal("You must be logged in.")
             return
         }
@@ -269,46 +269,55 @@
 
         try {
             const outfitDetails = getCurrentOutfitDetails()
+
+            if (outfitDetails.length === 0) {
+                showAlertModal("No items selected to save.")
+                saving.value = false
+                return
+            }
+
             const imageUrls = outfitDetails.map(item => item.imageUrl).filter(Boolean)
             let uploadedCollages = []
             let mainImageUrl = ''
 
-            // Generate collages for 4+ items
-            if (outfitDetails.length >= 4) {
+            // Generate collages
+            if (imageUrls.length >= 4) {
                 const collageDataUrls = await generateCollagesForAllItems(outfitDetails)
-                
-                // Upload each collage to Firebase Storage
-                for (let i = 0; i < collageDataUrls.length; i++) {
-                    try {
-                        const dataUrl = collageDataUrls[i]
-                        if (dataUrl) {
-                            const fileName = `${Date.now()}-collage-${i}.png`
-                            const storagePath = `users/${user.value.uid}/outfits/${fileName}`
-                            const fRef = storageRef(storage, storagePath)
-                            await uploadString(fRef, dataUrl, 'data_url')
-                            const url = await getDownloadURL(fRef)
-                            uploadedCollages.push(url)
-                            
-                            // Use first collage as main image
-                            if (i === 0) {
-                                mainImageUrl = url
-                            }
-                        }
-                    } catch (err) {
-                        console.error('Collage upload failed:', err)
-                    }
+                const validCollages = collageDataUrls.filter(Boolean)
+
+                for (let i = 0; i < validCollages.length; i++) {
+                    const dataUrl = validCollages[i]
+                    const fileName = `${Date.now()}-collage-${i}.png`
+                    const storagePath = `users/${user.value.uid}/outfits/${fileName}`
+                    const fRef = storageRef(storage, storagePath)
+                    await uploadString(fRef, dataUrl, 'data_url')
+                    const url = await getDownloadURL(fRef)
+                    uploadedCollages.push(url)
+
+                    if (i === 0 && !mainImageUrl) mainImageUrl = url
                 }
             } else if (imageUrls.length > 0) {
-                // For less than 4 items, use the first item's image as main image
-                mainImageUrl = imageUrls[0]
+                // For 1–3 items, generate a single tight collage
+                const singleCollageDataUrl = await generateTightCollageFromUrls(imageUrls, 1200, 1500)
+                if (singleCollageDataUrl) {
+                    const fileName = `${Date.now()}-collage-0.png`
+                    const storagePath = `users/${user.value.uid}/outfits/${fileName}`
+                    const fRef = storageRef(storage, storagePath)
+                    await uploadString(fRef, singleCollageDataUrl, 'data_url')
+                    const url = await getDownloadURL(fRef)
+                    uploadedCollages.push(url)
+                    mainImageUrl = url
+                } else {
+                    // fallback: use first item's image
+                    mainImageUrl = imageUrls[0]
+                }
             }
 
-            // Save to Firestore
+            // Save outfit to Firestore
             const outfitsRef = collection(doc(db, 'users', user.value.uid), 'outfits')
             await addDoc(outfitsRef, {
                 name: 'New Outfit',
                 description: '',
-                
                 itemDetails: outfitDetails.map(item => ({
                     id: item.id,
                     name: item.name || '',
@@ -316,17 +325,15 @@
                     imageUrl: item.imageUrl || '',
                     colors: item.colors || []
                 })),
-                
                 imageUrl: mainImageUrl || '',
                 collages: uploadedCollages,
-                
                 createdAt: serverTimestamp(),
             })
 
             showAlertModal("Outfit saved successfully!")
-            
+
         } catch (err) {
-            console.error("Error Saving", err)
+            console.error("Error Saving Outfit:", err)
             showAlertModal("Failed to save outfit")
         } finally {
             saving.value = false

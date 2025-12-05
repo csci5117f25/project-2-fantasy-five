@@ -4,22 +4,12 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="goBack"> ← Back</button>
-
-      <div class="btn-group">
-        <button class="btn btn-light" @click="toggleFavorite">
-          {{ outfit.favorite ? '❤️' : '🤍' }}
-        </button>
-
-        <button class="btn btn-light" @click="editOutfit">✏️</button>
-
-        <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
-      </div>
     </div>
 
     <div class="row g-4">
 
       <!-- Image / Collage -->
-      <div class="col-12 col-lg-6">
+      <div class="col-12 col-lg-5">
         <div class="card shadow-sm overflow-hidden image-container">
 
           <!-- Carousel if multiple collages -->
@@ -96,9 +86,21 @@
       </div>
 
       <!-- Outfit Info -->
-      <div class="col-12 col-lg-6">
-        <div class="card p-4 shadow-sm h-100">
-          <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
+      <div class="col-12 col-lg-7">
+        <div class="card p-4 shadow-sm h-100" >
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
+            <div class="btn-group">
+              <button class="btn btn-light" @click="toggleFavorite">
+                {{ outfit.favorite ? '❤️' : '🤍' }}
+              </button>
+
+              <button class="btn btn-light" @click="editOutfit">✏️</button>
+
+              <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
+            </div>
+          </div>
 
           <p v-if="outfit.description" class="text-muted">
             {{ outfit.description }}

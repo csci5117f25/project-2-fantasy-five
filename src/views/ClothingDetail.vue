@@ -4,20 +4,12 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-outline-secondary" @click="goBack">← Back</button>
-
-      <div class="btn-group">
-        <button class="btn btn-light" @click="toggleFavorite">
-          {{ item.favorite ? '❤️' : '🤍' }}
-        </button>
-        <button class="btn btn-light" @click="editItem">✏️</button>
-        <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
-      </div>
     </div>
 
     <div class="row g-4">
 
       <!-- Image Section -->
-      <div class="col-12 col-lg-6">
+      <div class="col-12 col-lg-5">
         <div class="card shadow-sm overflow-hidden image-container">
           <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="img-fluid">
 
@@ -28,9 +20,19 @@
       </div>
 
       <!-- Info Section -->
-      <div class="col-12 col-lg-6">
+      <div class="col-12 col-lg-7">
         <div class="card p-4 shadow-sm">
-          <h2 class="fw-bold mb-2">{{ item.name }}</h2>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-2">{{ item.name }}</h2>
+            <div class="btn-group">
+              <button class="btn btn-light" @click="toggleFavorite">
+                {{ item.favorite ? '❤️' : '🤍' }}
+              </button>
+              <button class="btn btn-light" @click="editItem">✏️</button>
+              <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
+            </div>
+          </div>
+
           <p class="text-primary">{{ getCategoryLabel(item.category) }}</p>
 
           <p v-if="item.description" class="text-muted">{{ item.description }}</p>
