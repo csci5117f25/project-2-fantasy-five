@@ -113,7 +113,7 @@
             :key="item.id"
             class="col-6"
           >
-            <div class="card h-100 shadow-sm" @click="$router.push(`/app/clothing/${item.id}`)">
+            <div class="card h-100 shadow-sm clothing-card" @click="$router.push(`/app/clothing/${item.id}`)">
               <div class="bg-light image-container">
                 <img 
                   v-if="item.imageUrl" 

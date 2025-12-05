@@ -447,5 +447,4 @@ export default {
   filter: invert(100%); 
   text-shadow: 0 0 4px rgba(0,0,0,0.5);
 }
-
 </style>

@@ -143,7 +143,7 @@
             :key="outfit.id"
             class="col-6"
           >
-            <div class="card h-100 shadow-sm" @click="navigateToItem(outfit.id)">
+            <div class="card h-100 shadow-sm outfit-card" @click="navigateToItem(outfit.id)">
               <div class="bg-light image-container">
 
                 <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id + '-mobile'" class="carousel slide" data-bs-ride="carousel">
@@ -215,7 +215,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { useCollection, useCurrentUser } from 'vuefire'
   import { collection, query, orderBy, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
@@ -277,6 +277,21 @@
   }
 
   const navigateToItem = (outfitId) => router.push(`/app/outfits/${outfitId}`)
+
+  const preloadImages = (urls) => {
+    urls.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+  };
+
+  watch(outfits, (newOutfits) => {
+    newOutfits.forEach(outfit => {
+      if (outfit.collages?.length) preloadImages(outfit.collages);
+      if (outfit.imageUrl) preloadImages([outfit.imageUrl]);
+    });
+  });
+
 </script>
 
 <style scoped>
