@@ -1,5 +1,5 @@
 <template>
-  <div class="outfits-view bg-light min-vh-100 py-3">
+  <div class="outfits-view bg-body min-vh-100 py-3">
     <div class="container">
 
       <!-- DESKTOP LAYOUT -->
@@ -17,7 +17,7 @@
 
           <!-- Header -->
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="fw-bold text-dark m-0">My Outfits</h2>
+            <h2 class="fw-bold text-body m-0">My Outfits</h2>
             <p class="text-muted m-0" v-if="filteredOutfits?.length">
               {{ filteredOutfits.length }} outfits
             </p>
@@ -37,7 +37,12 @@
                   <!-- Image / Carousel -->
                   <div class="position-relative image-container">
                     
-                    <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id" class="carousel slide" data-bs-ride="carousel">
+                    <div
+                      v-if="outfit.collages && outfit.collages.length"
+                      :id="'carousel-' + outfit.id"
+                      class="carousel slide"
+                      data-bs-ride="carousel"
+                    >
                       <div class="carousel-inner">
                         <div
                           v-for="(collage, index) in outfit.collages"
@@ -73,9 +78,17 @@
                       </button>
                     </div>
 
-                    <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="card-img-top" alt="Outfit cover">
+                    <img
+                      v-else-if="outfit.imageUrl"
+                      :src="outfit.imageUrl"
+                      class="card-img-top"
+                      alt="Outfit cover"
+                    >
 
-                    <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
+                    <div
+                      v-else
+                      class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
+                    >
                       👕
                     </div>
 
@@ -94,14 +107,22 @@
                     <h5 class="card-title fw-semibold">
                       {{ outfit.name || outfit.title || 'Untitled Outfit' }}
                     </h5>
-                    <p class="text-muted small">{{ truncateDescription(outfit.description) }}</p>
+                    <p class="text-muted small">
+                      {{ truncateDescription(outfit.description) }}
+                    </p>
 
                     <!-- Tags -->
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                      <span v-if="outfit.seasons?.length" class="badge bg-light text-secondary">
+                      <span
+                        v-if="outfit.seasons?.length"
+                        class="badge bg-body-secondary text-body-secondary"
+                      >
                         {{ outfit.seasons[0] }}{{ outfit.seasons.length > 1 ? ' +' + (outfit.seasons.length - 1) : '' }}
                       </span>
-                      <span v-if="outfit.events?.length" class="badge bg-light text-secondary">
+                      <span
+                        v-if="outfit.events?.length"
+                        class="badge bg-body-secondary text-body-secondary"
+                      >
                         {{ outfit.events[0] }}{{ outfit.events.length > 1 ? ' +' + (outfit.events.length - 1) : '' }}
                       </span>
                     </div>
@@ -118,8 +139,8 @@
             <!-- Empty State -->
             <div v-else class="text-center py-5">
               <div class="fs-1 opacity-50 mb-3">👕</div>
-              <h3>No Outfits yet</h3>
-              <p>Use the + button to create your first outfit!</p>
+              <h3 class="text-body">No Outfits yet</h3>
+              <p class="text-muted">Use the + button to create your first outfit!</p>
             </div>
 
           </div>
@@ -129,7 +150,7 @@
       <!-- MOBILE LAYOUT -->
       <div v-else>
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="fw-bold m-0">My Outfits</h2>
+          <h2 class="fw-bold m-0 text-body">My Outfits</h2>
           <p class="text-muted m-0" v-if="filteredOutfits?.length">
             {{ filteredOutfits.length }} outfits
           </p>
@@ -144,9 +165,14 @@
             class="col-6"
           >
             <div class="card h-100 shadow-sm outfit-card" @click="navigateToItem(outfit.id)">
-              <div class="bg-light image-container">
+              <div class="image-container bg-body-secondary">
 
-                <div v-if="outfit.collages && outfit.collages.length" :id="'carousel-' + outfit.id + '-mobile'" class="carousel slide" data-bs-ride="carousel">
+                <div
+                  v-if="outfit.collages && outfit.collages.length"
+                  :id="'carousel-' + outfit.id + '-mobile'"
+                  class="carousel slide"
+                  data-bs-ride="carousel"
+                >
                   <div class="carousel-inner">
                     <div
                       v-for="(collage, index) in outfit.collages"
@@ -182,18 +208,34 @@
                   </button>
                 </div>
 
-                <img v-else-if="outfit.imageUrl" :src="outfit.imageUrl" class="img-fluid">
+                <img
+                  v-else-if="outfit.imageUrl"
+                  :src="outfit.imageUrl"
+                  class="img-fluid"
+                >
 
-                <div v-else class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image">
+                <div
+                  v-else
+                  class="d-flex justify-content-center align-items-center bg-primary text-white fs-1 placeholder-image"
+                >
                   👕
                 </div>
 
               </div>
 
               <div class="card-body py-2">
-                <h6 class="fw-semibold m-0">{{ outfit.name || outfit.title || 'Untitled Outfit' }}</h6>
-                <div v-if="outfit.seasons?.length" class="d-flex flex-wrap gap-1 mt-1">
-                  <span v-for="season in outfit.seasons.slice(0, 2)" :key="season" class="badge bg-light text-secondary small">
+                <h6 class="fw-semibold m-0 text-body">
+                  {{ outfit.name || outfit.title || 'Untitled Outfit' }}
+                </h6>
+                <div
+                  v-if="outfit.seasons?.length"
+                  class="d-flex flex-wrap gap-1 mt-1"
+                >
+                  <span
+                    v-for="season in outfit.seasons.slice(0, 2)"
+                    :key="season"
+                    class="badge bg-body-secondary text-body-secondary small"
+                  >
                     {{ season }}
                   </span>
                 </div>
@@ -204,8 +246,8 @@
 
         <div v-else class="text-center py-5">
           <div class="fs-1 opacity-50 mb-3">👕</div>
-          <h3>No Outfits yet</h3>
-          <p>Use the + button to create your first outfit!</p>
+          <h3 class="text-body">No Outfits yet</h3>
+          <p class="text-muted">Use the + button to create your first outfit!</p>
         </div>
 
       </div>

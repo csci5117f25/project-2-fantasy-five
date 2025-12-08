@@ -1,5 +1,5 @@
 <template>
-  <div class="clothing-view bg-light min-vh-100 py-3">
+  <div class="clothing-view bg-body min-vh-100 py-3">
     <div class="container">
 
       <!-- DESKTOP LAYOUT -->
@@ -16,12 +16,12 @@
         <div class="col-lg-9 main-container">
 
           <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h2 class="fw-bold text-dark m-0">My Clothing</h2>
-              <p class="text-muted m-0" v-if="filteredClothing?.length">
-                {{ filteredClothing.length }} items
-              </p>
-            </div>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="fw-bold text-body m-0">My Clothing</h2>
+            <p class="text-muted m-0" v-if="filteredClothing?.length">
+              {{ filteredClothing.length }} items
+            </p>
+          </div>
 
           <div class="main-content">
 
@@ -59,17 +59,23 @@
 
                   <!-- Card body -->
                   <div class="card-body">
-                    <h5 class="card-title fw-semibold">
+                    <h5 class="card-title fw-semibold text-body">
                       {{ item.name || item.title }}
                     </h5>
                     <p class="text-primary mb-1">{{ getCategoryLabel(item.category) }}</p>
 
                     <!-- Tags -->
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                      <span v-if="item.colors && item.colors.length" class="badge bg-light text-secondary">
+                      <span
+                        v-if="item.colors && item.colors.length"
+                        class="badge bg-body-secondary text-body-secondary"
+                      >
                         {{ item.colors[0] }}{{ item.colors.length > 1 ? ' +' + (item.colors.length - 1) : '' }}
                       </span>
-                      <span v-if="item.seasons && item.seasons.length" class="badge bg-light text-secondary">
+                      <span
+                        v-if="item.seasons && item.seasons.length"
+                        class="badge bg-body-secondary text-body-secondary"
+                      >
                         {{ item.seasons[0] }}{{ item.seasons.length > 1 ? ' +' + (item.seasons.length - 1) : '' }}
                       </span>
                     </div>
@@ -86,8 +92,8 @@
             <!-- Empty State -->
             <div v-else class="text-center py-5">
               <div class="fs-1 opacity-50 mb-3">👕</div>
-              <h3>No clothing items yet</h3>
-              <p>Use the + button to create your first clothing item!</p>
+              <h3 class="text-body">No clothing items yet</h3>
+              <p class="text-muted">Use the + button to create your first clothing item!</p>
             </div>
           </div>
         </div>
@@ -98,7 +104,7 @@
         
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="fw-bold m-0">My Clothing</h2>
+          <h2 class="fw-bold m-0 text-body">My Clothing</h2>
           <p class="text-muted m-0" v-if="filteredClothing?.length">
             {{ filteredClothing.length }} items
           </p>
@@ -114,7 +120,7 @@
             class="col-6"
           >
             <div class="card h-100 shadow-sm clothing-card" @click="$router.push(`/app/clothing/${item.id}`)">
-              <div class="bg-light image-container">
+              <div class="image-container bg-body-secondary">
                 <img 
                   v-if="item.imageUrl" 
                   :src="item.imageUrl" 
@@ -128,7 +134,7 @@
                 </div>
               </div>
               <div class="card-body py-2">
-                <h6 class="fw-semibold m-0">{{ item.name || item.title }}</h6>
+                <h6 class="fw-semibold m-0 text-body">{{ item.name || item.title }}</h6>
                 <p class="text-primary small mt-1">{{ getCategoryLabel(item.category) }}</p>
               </div>
             </div>
@@ -138,8 +144,8 @@
         <!-- Empty State -->
         <div v-else class="text-center py-5">
           <div class="fs-1 opacity-50 mb-3">👕</div>
-          <h3>No clothing items yet</h3>
-          <p>Use the + button to create your first clothing item!</p>
+          <h3 class="text-body">No clothing items yet</h3>
+          <p class="text-muted">Use the + button to create your first clothing item!</p>
         </div>
 
       </div>
@@ -171,8 +177,6 @@ export default {
     const showAlert = ref(false)
     const alertMessage = ref('')
 
-    
-    
     const showAlertModal = (message) => {
       alertMessage.value = message
       showAlert.value = true
@@ -180,8 +184,6 @@ export default {
     
     const clothingQuery = computed(() => {
       if (!currentUser.value) {
-        // Return a query to a non-existent collection to avoid VueFire errors
-        // This will return empty results until user is authenticated
         return query(collection(db, '_placeholder'))
       }
       return query(
@@ -214,7 +216,7 @@ export default {
           const itemEvents = Array.isArray(item.events) ? item.events : item.event ? [item.event] : []
           if (!itemEvents.some(e => events.includes(e))) return false
         }
-         if (favorites?.includes('Favorites Only') && !item.favorite) {
+        if (favorites?.includes('Favorites Only') && !item.favorite) {
           return false
         }
 
@@ -276,7 +278,6 @@ export default {
       showAlert,
       alertMessage,
       showAlertModal,
-
     }
   }
 }

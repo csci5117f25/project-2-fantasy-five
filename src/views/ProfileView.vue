@@ -86,7 +86,7 @@
 
             <!-- About Me -->
             <div class="card mb-4 shadow-sm">
-              <div class="card-header text-black">
+              <div class="card-header">
                 <h5 class="mb-0">About Me</h5>
               </div>
               <div class="card-body">
@@ -208,7 +208,7 @@
                 <div class="row mb-3 align-items-center">
                   <div class="col-sm-4 fw-bold">Theme</div>
                   <div class="col-sm-8">
-                    <select class="form-select" v-model="userSettings.theme" @change="applyTheme">
+                    <select class="form-select" v-model="userSettings.theme" @change="onThemeChange">
                       <option value="auto">Auto</option>
                       <option value="light">Light</option>
                       <option value="dark">Dark</option>
@@ -320,7 +320,7 @@ export default {
     })
     
     const userSettings = ref({
-      theme: 'auto',
+      theme: 'light',
       notifications: true,
       emailUpdates: true
     })
@@ -394,7 +394,7 @@ export default {
         const userDoc = await getDoc(doc(db, 'users', currentUser.value.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
-          userSettings.value.theme = data.userSettings?.theme || 'auto';
+          userSettings.value.theme = data.userSettings?.theme || 'light';
         }
       } catch (error) {
         console.error(error);
@@ -423,14 +423,22 @@ export default {
     
     const applyTheme = () => {
       const theme = userSettings.value.theme;
-      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.body.setAttribute('data-bs-theme', 'dark');
-      } else {
-        document.body.setAttribute('data-bs-theme', 'light');
-      }
-    }
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      const resolvedTheme =
+        theme === 'auto'
+          ? (systemPrefersDark ? 'dark' : 'light')
+          : theme;
+
+      document.documentElement.setAttribute('data-bs-theme', resolvedTheme);
+      document.body.setAttribute('data-bs-theme', resolvedTheme);
+    };
+
+    const onThemeChange = () => {
+      applyTheme();
+      saveSettings();
+    };
     
-    // Load data when user is authenticated
     const loadData = async () => {
       if (currentUser.value) {
         loading.value = true
@@ -443,37 +451,32 @@ export default {
       }
     }
     
-    // Watch for user authentication changes
     watch(currentUser, async (user) => {
       if (user) {
         await loadData()
       }
-      // Don't redirect immediately - let onMounted handle initial check
     })
     
     onMounted(async () => {
-      generateSizeOptions()
-      // Wait a moment for auth to initialize
-      await new Promise(resolve => setTimeout(resolve, 100))
+      generateSizeOptions();
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Check if user is authenticated
       if (currentUser.value) {
-        await loadData()
+        await loadData();
       } else {
-        // Check auth state directly as fallback
         await new Promise(resolve => {
           const unsubscribe = onAuthStateChanged(auth, (user) => {
-            unsubscribe()
-            resolve()
+            unsubscribe();
+            resolve();
             if (user) {
-              loadData()
+              loadData();
             } else {
-              router.push('/login')
+              router.push('/login');
             }
-          })
-        })
+          });
+        });
       }
-    })
+    });
 
     const saveProfile = async () => {
       if (!currentUser.value) return;
@@ -508,7 +511,7 @@ export default {
           userSettings: {
             name: userProfile.value.name || '',
             username: userProfile.value.username || '',
-            theme: userSettings.value.theme || 'system',
+            theme: userSettings.value.theme || 'light',
             profilePictureUrl: userProfile.value.profilePic || null,
             bio: userProfile.value.bio || ''
           },
@@ -538,7 +541,7 @@ export default {
         const userDocRef = doc(db, 'users', currentUser.value.uid);
         await setDoc(userDocRef, {
           userSettings: {
-            theme: userSettings.value.theme || 'system'
+            theme: userSettings.value.theme || 'light'
           },
           updatedAt: new Date()
         }, { merge: true });
@@ -585,7 +588,6 @@ export default {
         const targetSize = 800
         const aspectRatio = 1 
         
-        // Create viewfinder overlay
         const maskId = `viewfinderMask-${Date.now()}`
         const updateViewfinder = () => {
           const videoRect = preview.getBoundingClientRect()
@@ -594,20 +596,17 @@ export default {
           let viewfinderWidth, viewfinderHeight, viewfinderLeft, viewfinderTop
           
           if (videoAspect > aspectRatio) {
-            // Video is wider than target, fit to height
             viewfinderHeight = videoRect.height
             viewfinderWidth = viewfinderHeight * aspectRatio
             viewfinderLeft = (videoRect.width - viewfinderWidth) / 2
             viewfinderTop = 0
           } else {
-            // Video is taller than target, fit to width
             viewfinderWidth = videoRect.width
             viewfinderHeight = viewfinderWidth / aspectRatio
             viewfinderLeft = 0
             viewfinderTop = (videoRect.height - viewfinderHeight) / 2
           }
           
-          // Create SVG overlay with circular viewfinder
           overlay.innerHTML = `
             <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
               <defs>
@@ -641,34 +640,28 @@ export default {
         modal.querySelector('#closeCamera').onclick = closeCamera
         modal.querySelector('#cancelCamera').onclick = closeCamera
         modal.querySelector('#capturePhoto').onclick = () => {
-          // Calculate crop area based on viewfinder
           const videoRect = preview.getBoundingClientRect()
           const videoAspect = preview.videoWidth / preview.videoHeight
           
           let cropWidth, cropHeight, cropX, cropY
           
           if (videoAspect > aspectRatio) {
-            // Video is wider, crop width
             cropHeight = preview.videoHeight
             cropWidth = cropHeight * aspectRatio
             cropX = (preview.videoWidth - cropWidth) / 2
             cropY = 0
           } else {
-            // Video is taller, crop height
             cropWidth = preview.videoWidth
             cropHeight = cropWidth / aspectRatio
             cropX = 0
             cropY = (preview.videoHeight - cropHeight) / 2
           }
           
-
-          // Output square for circular profile picture
           const outputSize = 800
           canvas.width = outputSize
           canvas.height = outputSize
           ctx.drawImage(preview, cropX, cropY, cropWidth, cropHeight, 0, 0, outputSize, outputSize)
           
-          // Apply circular mask
           ctx.globalCompositeOperation = 'destination-in'
           ctx.beginPath()
           ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2)
@@ -692,7 +685,6 @@ export default {
       userProfile.value.profilePic = ''
       await saveProfile()
       
-      // Delete the profile picture from storage
       if (oldProfilePic) {
         await deleteImageFromStorage(oldProfilePic)
       }
@@ -736,7 +728,6 @@ export default {
         userProfile.value.profilePic = downloadURL
         await saveProfile()
         
-        // Delete old profile picture if it exists and is different from the new one
         if (oldProfilePic && oldProfilePic !== downloadURL) {
           await deleteImageFromStorage(oldProfilePic)
         }
@@ -783,34 +774,28 @@ export default {
     
     const deleteUserData = async (userId) => {
       try {
-        // Collect all image URLs before deleting documents
         const imageUrls = []
         
-        // Get profile picture URL
         const userDoc = await getDoc(doc(db, 'users', userId))
         if (userDoc.exists()) {
           const profilePicUrl = userDoc.data()?.userSettings?.profilePictureUrl
           if (profilePicUrl) imageUrls.push(profilePicUrl)
         }
         
-        // Get clothing item image URLs
         const clothingSnapshot = await getDocs(collection(db, 'users', userId, 'clothingItems'))
         clothingSnapshot.docs.forEach(doc => {
           const imageUrl = doc.data()?.imageUrl
           if (imageUrl) imageUrls.push(imageUrl)
         })
         
-        // Get outfit image URLs
         const outfitsSnapshot = await getDocs(collection(db, 'users', userId, 'outfits'))
         outfitsSnapshot.docs.forEach(doc => {
           const imageUrl = doc.data()?.imageUrl
           if (imageUrl) imageUrls.push(imageUrl)
         })
         
-        // Delete all images from storage
         await deleteImagesFromStorage(imageUrls)
         
-        // Delete Firestore documents
         await deleteDoc(doc(db, 'users', userId))
         await Promise.all(clothingSnapshot.docs.map(doc => deleteDoc(doc.ref)))
         await Promise.all(outfitsSnapshot.docs.map(doc => deleteDoc(doc.ref)))
@@ -844,6 +829,7 @@ export default {
       saveUsername,
       saveSettings,
       applyTheme,
+      onThemeChange,
       triggerFileInput,
       takePhoto,
       removeProfilePic,
@@ -883,5 +869,47 @@ export default {
 .editable-name:focus, .editable-username:focus {
   outline: 2px solid #6f42c1;
   background-color: #f8f9fa;
+}
+
+:global(html[data-bs-theme]),
+:global(body[data-bs-theme]) {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+:global(body[data-bs-theme="light"]) {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+:global(body[data-bs-theme="dark"]) {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+:global(body[data-bs-theme] .card),
+:global(body[data-bs-theme] .modal-content) {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+
+:global(body[data-bs-theme] .form-control),
+:global(body[data-bs-theme] .form-select),
+:global(body[data-bs-theme] textarea) {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+
+:global(body[data-bs-theme="dark"] .border-end) {
+  border-color: var(--bs-border-color) !important;
+}
+
+.editable-name:hover,
+.editable-username:hover,
+.editable-name:focus,
+.editable-username:focus {
+  outline: 2px solid #6f42c1;
+  background-color: var(--bs-secondary-bg);
 }
 </style>

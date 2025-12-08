@@ -1,37 +1,37 @@
 <template>
-  <div class="main-layout d-flex flex-column min-vh-100 bg-light">
+  <div class="main-layout d-flex flex-column min-vh-100 bg-body">
 
     <!-- Header -->
-    <header class="app-header sticky-top bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
+    <header class="app-header sticky-top border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
       <!-- Brand -->
       <router-link to="/app/outfits" class="brand text-decoration-none">
-        <h1 class="h5 fw-bold m-0 text-dark">CLOSET CLOUD</h1>
+        <h1 class="h5 fw-bold m-0 text-body">CLOSET CLOUD</h1>
       </router-link>
 
       <!-- Nav -->
       <nav class="main-nav d-flex gap-3">
         <router-link 
           to="/app/outfits" 
-          class="nav-link text-secondary fw-medium" 
+          class="nav-link text-body-secondary fw-medium" 
           :class="{ active: $route.name === 'Outfits' }">
           Outfit
         </router-link>
         <router-link 
           to="/app/clothing" 
-          class="nav-link text-secondary fw-medium" 
+          class="nav-link text-body-secondary fw-medium" 
           :class="{ active: $route.name === 'Clothing' }">
           Clothing
         </router-link>
         <router-link 
           to="/app/try-on" 
-          class="nav-link text-secondary fw-medium" 
+          class="nav-link text-body-secondary fw-medium" 
           :class="{ active: $route.name === 'TryOn' }">
           TryOn
         </router-link>
       </nav>
 
       <!-- Profile Button -->
-      <button class="profile-btn btn p-0 fs-5" @click="$router.push('/app/profile')">
+      <button class="profile-btn btn p-0 fs-5 text-body" @click="$router.push('/app/profile')">
         👤
       </button>
     </header>
@@ -44,7 +44,7 @@
     <!-- Floating Action Button -->
     <button 
       v-if="showFab" 
-      class="fab btn btn-dark rounded-circle" 
+      class="fab btn rounded-circle" 
       @click="handleFabClick"
     >
       +
@@ -81,16 +81,18 @@ export default {
 
 <style scoped>
 .app-header {
-  position: sticky; /* already sticky */
+  position: sticky;
   top: 0;
-  z-index: 1100; /* higher than filter panel */
-  background-color: #fff; /* make sure background covers content */
+  z-index: 1100;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
 }
 
+/* Active nav link adapts to current theme */
 .nav-link.active {
-  color: #000 !important;
+  color: var(--bs-body-color) !important;
   font-weight: 700;
-  border-bottom: 2px solid #000;
+  border-bottom: 2px solid var(--bs-body-color);
 }
 
 .brand {
@@ -111,6 +113,10 @@ export default {
   font-size: 1.5rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   z-index: 1000;
+
+  background-color: var(--bs-body-color);
+  color: var(--bs-body-bg);
+  border: none;
 }
 
 .fab:hover {

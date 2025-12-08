@@ -2,16 +2,18 @@
   <div class="filter-section mb-3 border rounded">
     <!-- Header -->
     <div
-      class="section-header d-flex justify-content-between align-items-center p-3 bg-light"
+      class="section-header d-flex justify-content-between align-items-center p-3"
       @click="toggleExpanded"
       style="cursor: pointer;"
     >
-      <h4 class="m-0 text-uppercase small fw-semibold">{{ title }}</h4>
-      <span class="expand-icon fs-5 fw-bold text-secondary">{{ isExpanded ? '−' : '+' }}</span>
+      <h4 class="m-0 text-uppercase small fw-semibold text-body">{{ title }}</h4>
+      <span class="expand-icon fs-5 fw-bold text-body-secondary">
+        {{ isExpanded ? '−' : '+' }}
+      </span>
     </div>
 
     <!-- Collapsible Content -->
-    <div v-if="isExpanded" class="section-content p-3 bg-white">
+    <div v-if="isExpanded" class="section-content p-3">
       <div class="form-check" v-for="option in options" :key="option">
         <input
           class="form-check-input"
@@ -21,7 +23,7 @@
           :checked="selectedValues.includes(option)"
           @change="handleCheckboxChange(option, $event.target.checked)"
         />
-        <label class="form-check-label" :for="optionId(option)">
+        <label class="form-check-label text-body" :for="optionId(option)">
           {{ getDisplayLabel(option) }}
         </label>
       </div>
@@ -87,6 +89,19 @@ export default {
 </script>
 
 <style scoped>
+.filter-section {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+}
+
+.section-header {
+  background-color: var(--bs-secondary-bg);
+}
+
+.section-content {
+  background-color: var(--bs-body-bg);
+}
+
 .expand-icon {
   user-select: none;
 }
