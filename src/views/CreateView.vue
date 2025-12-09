@@ -70,9 +70,19 @@
             </select>
           </div>
           <div v-if="formData.seasons.length > 0" class="d-flex flex-wrap gap-2">
-            <span v-for="season in formData.seasons" :key="season" :class="`badge ${getSeasonBadgeClass(season)}`">
+            <span 
+              v-for="season in formData.seasons" 
+              :key="season" 
+              :class="`badge ${getSeasonBadgeClass(season)}`">
               {{ season }}
-              <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeSelection('seasons', season)"></button>
+              <button 
+                type="button-season" 
+                class="btn-sm ms-1" 
+                style="background: none; border: none; padding: 0; cursor: pointer; font-weight: bold;" 
+                :style="{ color: season === 'Summer' ? '#000' : '#fff' }" 
+                @click="removeSelection('seasons', season)">
+                ×
+              </button>
             </span>
           </div>
         </div>
@@ -90,9 +100,20 @@
             </select>
           </div>
           <div v-if="formData.seasons.length > 0" class="d-flex flex-wrap gap-2">
-            <span v-for="season in formData.seasons" :key="season" :class="`badge ${getSeasonBadgeClass(season)}`">
+            <span 
+              v-for="season in formData.seasons" 
+              :key="season" 
+              :class="`badge ${getSeasonBadgeClass(season)}`"
+            >
               {{ season }}
-              <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeSelection('seasons', season)"></button>
+              <button 
+                type="button-season" 
+                class="btn-sm ms-1" 
+                style="background: none; border: none; padding: 0; cursor: pointer; font-weight: bold;" 
+                :style="{ color: season === 'Summer' ? '#000' : '#fff' }" 
+                @click="removeSelection('seasons', season)"              >
+                ×
+              </button>
             </span>
           </div>
         </div>
@@ -110,12 +131,24 @@
             </select>
           </div>
           <div v-if="formData.colors.length > 0" class="d-flex flex-wrap gap-2">
-            <span v-for="color in formData.colors" :key="color" :class="`badge ${getColorBadgeClass(color)}`" :style="getColorBadgeStyle(color)">
+            <span 
+              v-for="color in formData.colors" 
+              :key="color" 
+              :class="`badge ${getColorBadgeClass(color)}`" 
+              :style="getColorBadgeStyle(color)">
               {{ color }}
-              <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeSelection('colors', color)"></button>
+              <button 
+                type="button-color" 
+                class="btn-sm ms-1" 
+                style="background: none; border: none; padding: 0; cursor: pointer; font-weight: bold;" 
+                :style="{ color: ['White', 'Yellow', 'Pink', 'Orange'].includes(color) ? '#000' : '#fff' }" 
+                @click="removeSelection('colors', color)">
+                ×
+              </button>
             </span>
           </div>
         </div>
+
         <div class="col-md-6">
           <label class="form-label">Event Types</label>
           <div class="input-group mb-2">
@@ -127,9 +160,19 @@
             </select>
           </div>
           <div v-if="formData.events.length > 0" class="d-flex flex-wrap gap-2">
-            <span v-for="event in formData.events" :key="event" :class="`badge ${getEventBadgeClass(event)}`">
+            <span 
+              v-for="event in formData.events" 
+              :key="event" 
+              :class="`badge ${getEventBadgeClass(event)}`">
               {{ event }}
-              <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeSelection('events', event)"></button>
+              <button 
+                type="button-event" 
+                class="btn-sm ms-1" 
+                style="background: none; border: none; padding: 0; cursor: pointer; font-weight: bold;" 
+                :style="{ color: event === 'Date' ? '#000' : '#fff' }" 
+                @click="removeSelection('events', event)">
+                ×
+              </button>
             </span>
           </div>
         </div>
@@ -209,9 +252,18 @@
           <button class="btn btn-outline-secondary" type="button" @click="addTag">+</button>
         </div>
         <div class="d-flex flex-wrap gap-2">
-          <span v-for="tag in formData.tags" :key="tag" class="badge bg-info text-dark">
+          <span 
+            v-for="tag in formData.tags" 
+            :key="tag" 
+            class="tag-outline">
             {{ tag }}
-            <button type="button" class="btn-close btn-close-white btn-sm ms-1" @click="removeTag(tag)"></button>
+            <button 
+              type="button-tag" 
+              class="btn-sm ms-1" 
+              style="background: none; border: none; padding: 0; cursor: pointer; font-weight: bold; color: white" 
+              @click="removeTag(tag)">
+              ×
+            </button>
           </span>
         </div>
       </div>
@@ -765,7 +817,7 @@ export default {
     }
 
     const getColorBadgeClass = (color) => {
-      const darkColors = ['Black', 'Blue', 'Purple', 'Brown']
+      const darkColors = ['Black', 'Blue', 'Purple', 'Brown', 'Green', 'Red', 'Multi', 'Gray']
       return darkColors.includes(color) ? 'text-white' : 'text-dark'
     }
 
@@ -1022,5 +1074,28 @@ export default {
 .custom-fixed-modal .modal-content {
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.tag-outline {
+  border-radius: 0.5rem;             
+  background-color: #7392b0;         
+  color: white;                    
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-block;
+  transition: 0.2s ease;
+  padding: 0.25rem 0.5rem;
+}
+
+button[type="button-color"], 
+button[type="button-season"], 
+button[type="button-event"], 
+button[type="button-tag"] {
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.5 0.5rem;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 </style>

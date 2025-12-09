@@ -81,17 +81,17 @@
             <div v-if="item.colors && item.colors.length" class="mt-4">
               <h4>Colors</h4>
               <div class="d-flex flex-wrap gap-2 mt-2">
-                <span 
-                  v-for="color in item.colors" 
-                  :key="color" 
-                  class="badge px-3 py-2"
-                  :style="{ 
-                    backgroundColor: getColorHex(color), 
-                    color: getContrastColor(color) 
-                  }"
-                >
-                  {{ color }}
-                </span>
+              <span 
+                v-for="color in item.colors" 
+                :key="color" 
+                class="badge px-3 py-2"
+                :style="{ 
+                  backgroundColor: getColorHex(color), 
+                  color: getContrastColor(color), 
+                  border: color === 'White' ? '1px solid #ccc' : 'none'
+                }">
+                {{ color }}
+              </span>
               </div>
             </div>
 
@@ -326,13 +326,13 @@ export default {
 }
 
 .tag-outline {
-  border: 1px solid #ced4da;       
   border-radius: 0.5rem;             
-  background-color: #f8f9fa;         
-  color: #495057;                   
+  background-color: #7392b0;         
+  color: white;                    
   font-size: 0.85rem;
   font-weight: 700;
   display: inline-block;
   transition: 0.2s ease;
+  padding: 0.25rem 0.5rem;
 }
 </style>

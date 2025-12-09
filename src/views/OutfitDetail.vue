@@ -173,7 +173,8 @@
                 class="badge px-3 py-2"
                 :style="{ 
                   backgroundColor: getColorHex(color), 
-                  color: getContrastColor(color) 
+                  color: getContrastColor(color), 
+                  border: color === 'White' ? '1px solid #ccc' : 'none'
                 }"
               >
                 {{ color }}
@@ -313,19 +314,8 @@ export default {
     }
 
     const getContrastColor = (colorName) => {
-      const darkColors = ['Black', 'Blue', 'Brown', 'Gray', 'Grey', 'Purple']
+      const darkColors = ['Black', 'Blue', 'Brown', 'Gray', 'Grey', 'Purple', 'Red', 'Green', 'Multi']
       return darkColors.includes(colorName) ? '#FFFFFF' : '#000000'
-    }
-
-    const getSeasonBadgeClass = (season) => {
-      const classes = {
-        'Spring': 'bg-success',
-        'Summer': 'bg-warning text-dark',
-        'Fall': 'bg-danger',
-        'Winter': 'bg-primary',
-        'All Season': 'bg-secondary'
-      }
-      return classes[season] || 'bg-secondary'
     }
 
     const formatDate = (timestamp) => {
@@ -412,8 +402,6 @@ export default {
       newOutfit.itemDetails = itemDetails.filter(item => item !== null)
     })
 
-
-
     return {
       goBack,
       outfit,
@@ -422,7 +410,6 @@ export default {
       getCategoryGradient,
       getColorHex,
       getContrastColor,
-      getSeasonBadgeClass,
       formatDate,
       navigateToClothingItem,
       toggleFavorite,
@@ -452,13 +439,13 @@ export default {
 }
 
 .tag-outline {
-  border: 1px solid #ced4da;       
   border-radius: 0.5rem;             
-  background-color: #f8f9fa;         
-  color: #495057;                   
+  background-color: #7392b0;         
+  color: white;                    
   font-size: 0.85rem;
   font-weight: 700;
   display: inline-block;
   transition: 0.2s ease;
+  padding: 0.25rem 0.5rem;
 }
 </style>
