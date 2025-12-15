@@ -59,14 +59,14 @@
           <!-- Fallback item grid -->
           <div
             v-else-if="outfit.itemDetails && outfit.itemDetails.length"
-            class="row row-cols-2 p-4 g-3 bg-white"
+            class="row row-cols-2 p-4 g-3 bg-body"
           >
             <div
               v-for="item in outfit.itemDetails"
               :key="item.id"
               class="col"
             >
-              <div class="card h-100 bg-light image-container">
+              <div class="card h-100 bg-body image-container">
                 <img
                   v-if="item.imageUrl"
                   :src="item.imageUrl"
@@ -92,13 +92,13 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold mb-2">{{ outfit.name || outfit.title }}</h2>
             <div class="btn-group">
-              <button class="btn btn-light" @click="toggleFavorite">
+              <button class="btn btn-outline-secondary custom-btn-group" @click="toggleFavorite">
                 {{ outfit.favorite ? '❤️' : '🤍' }}
               </button>
 
-              <button class="btn btn-light" @click="editOutfit">✏️</button>
+              <button class="btn btn-outline-secondary custom-btn-group" @click="editOutfit">✏️</button>
 
-              <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
+              <button class="btn btn-outline-secondary custom-btn-group-delete" @click="confirmDelete">🗑️</button>
             </div>
           </div>
 
@@ -142,21 +142,21 @@
           <!-- Details Grid -->
           <div class="row g-3 mt-4">
             <div class="col-md-4" v-if="outfit.seasons && outfit.seasons.length">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Seasons</div>
                 <div class="fw-semibold">{{ outfit.seasons.join(', ') }}</div>
               </div>
             </div>
 
             <div class="col-md-4" v-if="outfit.events && outfit.events.length">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Events</div>
                 <div class="fw-semibold">{{ outfit.events.join(', ') }}</div>
               </div>
             </div>
 
             <div class="col-md-4">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Created</div>
                 <div class="fw-semibold">{{ formatDate(outfit.createdAt) }}</div>
               </div>
@@ -426,26 +426,44 @@ export default {
 </script>
 
 <style scoped>
-.list-group-item:hover {
-  background-color: #f8f9fa;
-  transform: translateX(4px);
+.list-group-item {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
   transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: var(--bs-secondary-bg);
+  transform: translateX(4px);
 }
 
 .carousel-control-prev-icon,
 .carousel-control-next-icon {
-  filter: invert(100%); 
-  text-shadow: 0 0 4px rgba(0,0,0,0.5);
+  filter: invert(100%);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
 
 .tag-outline {
-  border-radius: 0.5rem;             
-  background-color: #7392b0;         
-  color: white;                    
+  border-radius: 0.5rem;
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  border: 1px solid var(--bs-border-color);
   font-size: 0.85rem;
   font-weight: 700;
   display: inline-block;
-  transition: 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
   padding: 0.25rem 0.5rem;
+}
+
+.tag-outline:hover {
+  background-color: var(--bs-primary);
+  color: var(--bs-body-bg);
+  transform: translateY(-1px);
+}
+
+.custom-btn-group-delete:hover {
+  background-color: red;
+  border-color: red;
 }
 </style>

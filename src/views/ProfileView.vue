@@ -41,9 +41,8 @@
                     <button 
                       v-if="userProfile.profilePic"
                       @click="removeProfilePic"
-                      class="btn-close position-absolute top-0 end-0"
-                      style="background: white; padding: 4px;"
-                    ></button>
+                      class="btn btn-outline-danger custom-btn-close btn-sm position-absolute top-0 end-0 m-1"
+                    >X</button>
                   </div>
                   <input 
                     ref="fileInput"
@@ -911,5 +910,27 @@ export default {
 .editable-username:focus {
   outline: 2px solid #6f42c1;
   background-color: var(--bs-secondary-bg);
+}
+
+.custom-btn-close {
+  border-radius: 40%;
+}
+
+:global(body[data-bs-theme="dark"] .custom-btn-close){
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: white;
+}
+
+:global(body[data-bs-theme="light"] .custom-btn-close){
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: black;
+}
+
+.custom-btn-close:hover {
+  background-color: red;
+  border-color: red;
+  color: white;
 }
 </style>

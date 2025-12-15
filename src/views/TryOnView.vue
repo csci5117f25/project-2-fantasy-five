@@ -532,6 +532,11 @@
   background-color: var(--bs-body-bg);
 }
 
+:global(body[data-bs-theme="dark"] .carousel-wrapper),
+:global(body[data-bs-theme="dark"] .carousel-container) {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+
 .image-container {
   width: 100%;
   height: 200px;
@@ -561,16 +566,25 @@
   z-index: 10;
 }
 
+.carousel-nav button:hover {
+  background-color: rgba(0,0,0,0.85);
+}
+
+:global(body[data-bs-theme="dark"] .carousel-nav button) {
+  background-color: rgba(255,255,255,0.20);
+  color: var(--bs-body-bg);
+}
+
+:global(body[data-bs-theme="dark"] .carousel-nav button:hover) {
+  background-color: rgba(255,255,255,0.35);
+}
+
 .carousel-nav.prev {
   left: -55px;
 }
 
 .carousel-nav.next {
   right: -55px;
-}
-
-.carousel-nav button:hover {
-  background-color: rgba(0,0,0,0.85);
 }
 
 .action-buttons button {

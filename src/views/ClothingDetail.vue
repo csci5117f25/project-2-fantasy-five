@@ -25,11 +25,11 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold mb-2">{{ item.name }}</h2>
             <div class="btn-group">
-              <button class="btn btn-light" @click="toggleFavorite">
+              <button class="btn btn-outline-secondary custom-btn-group" @click="toggleFavorite">
                 {{ item.favorite ? '❤️' : '🤍' }}
               </button>
-              <button class="btn btn-light" @click="editItem">✏️</button>
-              <button class="btn btn-danger" @click="confirmDelete">🗑️</button>
+              <button class="btn btn-outline-secondary custom-btn-group" @click="editItem">✏️</button>
+              <button class="btn btn-outline-secondary custom-btn-group-delete" @click="confirmDelete">🗑️</button>
             </div>
           </div>
 
@@ -41,14 +41,14 @@
           <!-- Details Grid -->
           <div class="row g-3 mt-4">
             <div class="col-md-4" v-if="item.brand">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Brand</div>
                 <div class="fw-semibold">{{ item.brand }}</div>
               </div>
             </div>
 
             <div class="col-md-4" v-if="item.size">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Size</div>
                 <div class="fw-semibold">{{ item.size }}</div>
               </div>
@@ -56,7 +56,7 @@
 
             <!-- Seasons -->
             <div class="col-md-4" v-if="item.seasons && item.seasons.length">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Seasons</div>
                 <div class="fw-semibold">{{ item.seasons.join(', ') }}</div>
               </div>
@@ -64,14 +64,14 @@
 
             <!-- Events -->
             <div class="col-md-4" v-if="item.events && item.events.length">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Events</div>
                 <div class="fw-semibold">{{ item.events.join(', ') }}</div>
               </div>
             </div>
 
             <div class="col-md-4">
-              <div class="border rounded p-3 bg-light">
+              <div class="border rounded p-3 bg-body">
                 <div class="fw-medium text-secondary">Created</div>
                 <div class="fw-semibold">{{ formatDate(item.createdAt) }}</div>
               </div>
@@ -326,13 +326,28 @@ export default {
 }
 
 .tag-outline {
-  border-radius: 0.5rem;             
-  background-color: #7392b0;         
-  color: white;                    
+  border-radius: 0.5rem;
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  border: 1px solid var(--bs-border-color);
   font-size: 0.85rem;
   font-weight: 700;
   display: inline-block;
-  transition: 0.2s ease;
   padding: 0.25rem 0.5rem;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tag-outline:hover {
+  background-color: var(--bs-primary);
+  color: var(--bs-body-bg);
+  transform: translateY(-1px);
+}
+
+.custom-btn-group-delete:hover {
+  background-color: red;
+  border-color: red;
 }
 </style>

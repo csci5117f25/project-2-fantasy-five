@@ -44,7 +44,7 @@
       style="z-index: 1040;"
     >
       <div
-        class="offcanvas offcanvas-bottom show bg-white mobile-offcanvas"
+        class="offcanvas offcanvas-bottom show bg-body mobile-offcanvas"
         @click.stop
       >
         <div class="offcanvas-header border-bottom">
@@ -159,18 +159,22 @@ export default {
 
 <style scoped>
 .mobile-filter-btn {
-  background-color: #f8f9fa; 
-  color: #333;             
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
   font-size: 1.1rem;
   font-weight: 600;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   transition: all 0.2s ease-in-out;
-  border: 1px solid #ddd;
+  border: 1px solid var(--bs-border-color);
 }
 
 .mobile-filter-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bs-secondary-bg);
   transform: scale(1.03);
+}
+
+:global(body[data-bs-theme="dark"] .mobile-filter-btn) {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 
 .filter-badge {
@@ -181,7 +185,7 @@ export default {
 
 .desktop-filter-panel {
   position: sticky; /* sticky relative to main content */
-  top: 80px; /* adjust to navbar height (approx 3rem + padding) */
+  top: 80px;
   height: calc(100vh - 9rem);
   display: flex;
   flex-direction: column;
@@ -193,6 +197,16 @@ export default {
 .mobile-offcanvas {
   height: 85vh;
   border-radius: 1.5rem 1.5rem 0 0;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+.mobile-offcanvas .offcanvas-header,
+.mobile-offcanvas .offcanvas-body,
+.mobile-offcanvas .border-top {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
 }
 
 .filter-scrollable {
