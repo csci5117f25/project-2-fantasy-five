@@ -94,7 +94,7 @@
 
                     <!-- Favorite button -->
                     <button
-                      class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2"
+                      class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-2 favorite-btn"
                       @click.stop="toggleFavorite(outfit)"
                     >
                       {{ outfit.favorite ? '❤️' : '🤍' }}
@@ -370,6 +370,10 @@
 .carousel-control-next-icon {
   filter: invert(100%); 
   text-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+
+.favorite-btn {
+  z-index: 1001;
 }
 
 .sidebar {
