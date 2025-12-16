@@ -77,62 +77,57 @@ Splash page and login for first-time or returning users, highlighting the app's 
 along with a very brief caption:**
 
 MOBILE 
-<img width="395" height="850" alt="Screenshot 2025-12-16 at 2 08 12 PM" src="https://github.com/user-attachments/assets/53c6fb7f-d5c2-4fdd-9ad7-f6ed0540c3b8" />
+
+
+<img src="https://github.com/user-attachments/assets/53c6fb7f-d5c2-4fdd-9ad7-f6ed0540c3b8" width="300"/>
 Splash page with login/sign up. 
 
 
 
-<img width="395" height="849" alt="Screenshot 2025-12-16 at 2 10 38 PM" src="https://github.com/user-attachments/assets/99ec7069-cff8-418b-b869-c1635ddd3392" />
+<img src="https://github.com/user-attachments/assets/99ec7069-cff8-418b-b869-c1635ddd3392" width="300"/>
 Login page with manual and Google login. 
 
 
 
-<img width="393" height="847" alt="Screenshot 2025-12-16 at 2 11 11 PM" src="https://github.com/user-attachments/assets/c1fe630b-d2db-4237-be2d-cbd5fb18f686" />
+<img src="https://github.com/user-attachments/assets/c1fe630b-d2db-4237-be2d-cbd5fb18f686" width="300"/>
 Sign up page with necessary fields. 
 
 
 
-<img width="396" height="850" alt="Screenshot 2025-12-16 at 2 12 35 PM" src="https://github.com/user-attachments/assets/86408420-f4f5-4d06-8ee4-c3d1952778e3" />
+<img src="https://github.com/user-attachments/assets/86408420-f4f5-4d06-8ee4-c3d1952778e3" width="300"/>
 Outfit Page with all the saved outfits of the user. 
 
 
 
-<img width="399" height="849" alt="Screenshot 2025-12-16 at 2 13 26 PM" src="https://github.com/user-attachments/assets/b45f318c-bc8e-46d5-a584-f10c2fe5f6ed" />
+<img src="https://github.com/user-attachments/assets/b45f318c-bc8e-46d5-a584-f10c2fe5f6ed" width="300"/>
 Clothing page with all the saved clothing items of the user. 
 
 
-
-<img width="394" height="851" alt="Screenshot 2025-12-16 at 2 14 29 PM" src="https://github.com/user-attachments/assets/0fa9be10-cbfb-45d3-8aa3-199981e48306" />
+<img src="https://github.com/user-attachments/assets/0fa9be10-cbfb-45d3-8aa3-199981e48306" width="300"/>
 Try-On page where the user can create random outfits with existing clothing items and save. 
 
 
-
-<img width="392" height="846" alt="Screenshot 2025-12-16 at 2 16 12 PM" src="https://github.com/user-attachments/assets/f311e997-83dc-4f38-89a9-7870cf678634" />
+<img src="https://github.com/user-attachments/assets/f311e997-83dc-4f38-89a9-7870cf678634" width="300"/>
 Filter items in outfits or clothing by favorites, seasons, colors, and events. 
 
 
-
-<img width="395" height="851" alt="Screenshot 2025-12-16 at 2 36 39 PM" src="https://github.com/user-attachments/assets/ba7f5a07-31f2-4078-a948-e7b4ad8c752b" />
+<img src="https://github.com/user-attachments/assets/ba7f5a07-31f2-4078-a948-e7b4ad8c752b" width="300"/>
 Users' profile where they can edit their information and change the settings of the site. 
 
 
-
-<img width="396" height="849" alt="Screenshot 2025-12-16 at 2 37 17 PM" src="https://github.com/user-attachments/assets/acf59b87-3423-4833-b2ae-4e06c6ea4364" />
+<img src="https://github.com/user-attachments/assets/acf59b87-3423-4833-b2ae-4e06c6ea4364" width="300"/>
 Outfit Detail, where users can view information regarding their outfit. 
 
 
-
-<img width="394" height="846" alt="Screenshot 2025-12-16 at 2 37 51 PM" src="https://github.com/user-attachments/assets/2e1a8767-7030-4666-836a-bad8ad49284f" />
+<img src="https://github.com/user-attachments/assets/2e1a8767-7030-4666-836a-bad8ad49284f" width="300"/>
 Edit Outfit, where users can edit information regarding their outfit. 
 
 
-
-<img width="393" height="848" alt="Screenshot 2025-12-16 at 2 38 42 PM" src="https://github.com/user-attachments/assets/e7324e44-2da9-4b73-96d5-052b3d954448" />
+<img src="https://github.com/user-attachments/assets/e7324e44-2da9-4b73-96d5-052b3d954448" width="300"/>
 Clothing Item Detail, where users can view information regarding their clothing item. 
 
 
-
-<img width="397" height="851" alt="Screenshot 2025-12-16 at 2 39 17 PM" src="https://github.com/user-attachments/assets/d9ea98d4-4d12-4e54-a9f4-549f2de845c4" />
+<img src="https://github.com/user-attachments/assets/d9ea98d4-4d12-4e54-a9f4-549f2de845c4" width="300"/>
 Edit Clothing Item, where users can edit information regarding their clothing item. 
 
 
