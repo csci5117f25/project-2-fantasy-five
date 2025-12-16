@@ -283,6 +283,8 @@ import { deleteImageFromStorage, deleteImagesFromStorage } from '@/utils/imageCl
 import AlertModal from '@/components/AlertModal.vue'
 import ProfilePictureEditor from '@/components/ProfilePictureEditor.vue'
 
+import { applyTheme as applyThemeFn, getStoredTheme } from '@/utils/useTheme'
+
 export default {
   name: 'ProfileView',
   components: {
@@ -295,6 +297,8 @@ export default {
     const loading = ref(true)
     const showAlert = ref(false)
     const alertMessage = ref('')
+
+    const applyTheme = applyThemeFn
     
     const showAlertModal = (message) => {
       alertMessage.value = message
@@ -317,9 +321,11 @@ export default {
       chestMeasurement: '',
       inseamMeasurement: ''
     })
+
+    const storedTheme = getStoredTheme()
     
     const userSettings = ref({
-      theme: 'light',
+      theme: storedTheme,
       notifications: true,
       emailUpdates: true
     })
@@ -391,9 +397,16 @@ export default {
       if (!currentUser.value) return;
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.value.uid));
+        const localTheme = getStoredTheme(); // "light", "dark", "auto"
+
         if (userDoc.exists()) {
           const data = userDoc.data();
-          userSettings.value.theme = data.userSettings?.theme || 'light';
+
+          userSettings.value.theme =
+            localTheme || data.userSettings?.theme || 'light';
+        } else {
+          // No user doc yet, so use local/browser theme
+          userSettings.value.theme = localTheme || 'light';
         }
       } catch (error) {
         console.error(error);
@@ -419,22 +432,9 @@ export default {
       chestMeasurements.value = Array.from({length: 13}, (_, i) => (32 + i*2).toString());
       inseamMeasurements.value = Array.from({length: 7}, (_, i) => (26 + i*2).toString());
     }
-    
-    const applyTheme = () => {
-      const theme = userSettings.value.theme;
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-      const resolvedTheme =
-        theme === 'auto'
-          ? (systemPrefersDark ? 'dark' : 'light')
-          : theme;
-
-      document.documentElement.setAttribute('data-bs-theme', resolvedTheme);
-      document.body.setAttribute('data-bs-theme', resolvedTheme);
-    };
 
     const onThemeChange = () => {
-      applyTheme();
+      applyThemeFn(userSettings.value.theme);
       saveSettings();
     };
     
@@ -445,7 +445,6 @@ export default {
         await loadUserStats();
         await loadUserSettings();
         generateSizeOptions();
-        applyTheme();
         loading.value = false
       }
     }
