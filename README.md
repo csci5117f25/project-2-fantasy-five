@@ -20,8 +20,11 @@ CSCI 5117, Fall 2025, [assignment description](https://canvas.umn.edu/courses/51
 
 **Describe the most challenging features you implemented
 (one sentence per bullet, maximum 4 bullets):**
+- Enabled users to easily add clothing items by taking photos directly in the app using the device camera with editing capabilities.
+- Implemented a dynamic try-on feature that generates and saves random outfits using existing clothing items.
+- Editable detail views for outfits and clothing items with seamless data persistence across create, view, and edit flows.
+- Handled image storage and rendering for clothing items to ensure photos display correctly and collages are created properly.
 
-- ...
 
 Which (if any) device integration(s) does your app support?
 - Camera 
@@ -115,18 +118,18 @@ MOBILE
 
 
 
-Splash Page – Entry screen with login and sign-up options
-Login Page – Manual login and Google authentication
-Sign-Up Page – User registration with required fields
-Outfit Page – Displays all outfits saved by the user
-Clothing Page – Displays all clothing items saved by the user
-Try-On Page – Generates random outfits from existing clothing items and allows users to save them
-Filter Feature – Filter outfits or clothing by favorites, seasons, colors, and events
-User Profile – Edit personal information and application settings
-Outfit Detail – View detailed information about an outfit
-Edit Outfit – Modify outfit details
-Clothing Item Detail – View detailed information about a clothing item
-Edit Clothing Item – Modify clothing item details
+- Splash Page – Entry screen with login and sign-up options
+- Login Page – Manual login and Google authentication
+- Sign-Up Page – User registration with required fields
+- Outfit Page – Displays all outfits saved by the user
+- Clothing Page – Displays all clothing items saved by the user
+- Try-On Page – Generates random outfits from existing clothing items and allows users to save them
+- Filter Feature – Filter outfits or clothing by favorites, seasons, colors, and events
+- User Profile – Edit personal information and application settings
+- Outfit Detail – View detailed information about an outfit
+- Edit Outfit – Modify outfit details
+- Clothing Item Detail – View detailed information about a clothing item
+- Edit Clothing Item – Modify clothing item details
 
 ## External Dependencies
 
