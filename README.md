@@ -117,6 +117,41 @@ MOBILE
 <img src="https://github.com/user-attachments/assets/d9ea98d4-4d12-4e54-a9f4-549f2de845c4" width="300"/>
 
 
+<img width="1511" height="750" alt="Screenshot 2025-12-17 at 1 43 35 PM" src="https://github.com/user-attachments/assets/be88e07d-486b-482d-b10c-dded42949933" />
+
+
+<img width="1512" height="742" alt="Screenshot 2025-12-17 at 1 43 59 PM" src="https://github.com/user-attachments/assets/79ceb016-5094-42f2-831a-1b5dfda2b308" />
+
+
+<img width="1502" height="735" alt="Screenshot 2025-12-17 at 1 44 15 PM" src="https://github.com/user-attachments/assets/e88264be-5d31-4e5a-bb02-b16f0cbfe0e4" />
+
+
+<img width="1508" height="741" alt="Screenshot 2025-12-17 at 1 44 32 PM" src="https://github.com/user-attachments/assets/60913c3b-605f-419e-bd78-15a8b718a1d2" />
+
+
+<img width="1511" height="750" alt="Screenshot 2025-12-17 at 1 44 45 PM" src="https://github.com/user-attachments/assets/b8c8ea74-e58d-4a5f-9c52-25d939147a53" />
+
+
+<img width="1507" height="731" alt="Screenshot 2025-12-17 at 1 44 55 PM" src="https://github.com/user-attachments/assets/0a1de125-29d0-4459-8f1a-687eeb3026d2" />
+
+
+<img width="1506" height="744" alt="Screenshot 2025-12-17 at 1 45 25 PM" src="https://github.com/user-attachments/assets/d09f1bb5-7e38-4c21-8827-9ff5b6011ecb" />
+
+
+<img width="1508" height="744" alt="Screenshot 2025-12-17 at 1 45 39 PM" src="https://github.com/user-attachments/assets/9575ff26-42da-486c-a444-9fba2a657c20" />
+
+
+<img width="1508" height="728" alt="Screenshot 2025-12-17 at 1 45 52 PM" src="https://github.com/user-attachments/assets/737cf36e-ac4c-4938-b8b2-d543f0ef01c7" />
+
+
+<img width="1508" height="746" alt="Screenshot 2025-12-17 at 1 46 13 PM" src="https://github.com/user-attachments/assets/c18c6e83-c690-49cb-bb5c-fae5fda62510" />
+
+
+<img width="1508" height="719" alt="Screenshot 2025-12-17 at 1 46 30 PM" src="https://github.com/user-attachments/assets/25636553-08f4-47a7-931e-fde60f90a4d6" />
+
+
+<img width="1511" height="742" alt="Screenshot 2025-12-17 at 1 46 46 PM" src="https://github.com/user-attachments/assets/ce726011-d184-44e7-baf7-37bd1dd77400" />
+
 
 - Splash Page – Entry screen with login and sign-up options
 - Login Page – Manual login and Google authentication
